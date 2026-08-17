@@ -202,7 +202,7 @@ class SettingsScreen extends ConsumerWidget {
                         return DropdownMenuItem(
                           value: curr,
                           child: Text(
-                            curr.name,
+                            curr.label,
                             style: const TextStyle(color: TivoColors.textSecondary),
                           ),
                         );
