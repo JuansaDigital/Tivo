@@ -18,6 +18,7 @@ enum ExpenseCategory {
   education('Educación', LucideIcons.bookOpen, Color(0xFF38BDF8)),
   salary('Salario', LucideIcons.wallet, Color(0xFF10B981)),
   returns('Rendimientos', LucideIcons.trendingUp, Color(0xFF06B6D4)),
+  savings('Ahorro & Metas', LucideIcons.piggyBank, Color(0xFF10B981)),
   other('Otros', LucideIcons.layers, Color(0xFF94A3B8));
 
   final String label;

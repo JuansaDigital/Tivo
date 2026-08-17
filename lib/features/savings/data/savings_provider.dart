@@ -40,6 +40,22 @@ class SavingsNotifier extends StateNotifier<List<SavingsGoalModel>> {
     state = state.where((g) => g.id != id).toList();
   }
 
+  void addContribution(String id, double extraAmount) {
+    state = state.map((g) {
+      if (g.id == id) {
+        return SavingsGoalModel(
+          id: g.id,
+          title: g.title,
+          targetAmount: g.targetAmount,
+          currentAmount: g.currentAmount + extraAmount,
+          monthlyContribution: g.monthlyContribution,
+          color: g.color,
+        );
+      }
+      return g;
+    }).toList();
+  }
+
   void reset() {
     state = [];
   }

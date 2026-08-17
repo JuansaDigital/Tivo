@@ -18,6 +18,7 @@ import 'add_transaction_modal.dart';
 import 'widgets/expense_chart.dart';
 import '../../savings/data/savings_provider.dart';
 import '../../savings/presentation/savings_form_modal.dart';
+import '../../savings/presentation/add_contribution_modal.dart';
 
 class FinancesScreen extends ConsumerStatefulWidget {
   final int initialSubTab;
@@ -398,6 +399,38 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
                               color: TivoColors.textPrimary,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          GestureDetector(
+                            onTap: () => AddContributionModal.show(context, goal: g),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: TivoColors.statusIncomeGreen.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(TivoSpacing.radiusPill),
+                                border: Border.all(color: TivoColors.statusIncomeGreen.withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Icon(LucideIcons.plus, size: 12, color: TivoColors.statusIncomeGreenLight),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Aportar Dinero Extra',
+                                    style: TextStyle(
+                                      color: TivoColors.statusIncomeGreenLight,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],

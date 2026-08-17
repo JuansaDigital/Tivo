@@ -6,6 +6,7 @@ import '../../../../core/constants/tivo_colors.dart';
 import '../../../../core/constants/tivo_spacing.dart';
 import '../data/savings_provider.dart';
 import '../domain/models/savings_model.dart';
+import 'add_contribution_modal.dart';
 
 class SavingsFormModal extends ConsumerStatefulWidget {
   final SavingsGoalModel? goalToEdit;
@@ -142,9 +143,42 @@ class _SavingsFormModalState extends ConsumerState<SavingsFormModal> {
               children: [
                 Expanded(child: _buildTextField(controller: _currentController, label: 'AHORRO ACTUAL (\$)', hint: '0', icon: LucideIcons.piggyBank, isNumber: true)),
                 const SizedBox(width: 16),
-                Expanded(child: _buildTextField(controller: _monthlyController, label: 'APORTE MENSUAL', hint: '0', icon: LucideIcons.calendarClock, isNumber: true)),
+                Expanded(child: _buildTextField(controller: _monthlyController, label: 'MENSUAL (OPCIONAL)', hint: '0', icon: LucideIcons.calendarClock, isNumber: true)),
               ],
             ),
+            if (isEditing) ...[
+              const SizedBox(height: 14),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  AddContributionModal.show(context, goal: widget.goalToEdit!);
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: TivoColors.statusIncomeGreen.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                    border: Border.all(color: TivoColors.statusIncomeGreen.withOpacity(0.35)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(LucideIcons.plusCircle, size: 16, color: TivoColors.statusIncomeGreenLight),
+                      SizedBox(width: 8),
+                      Text(
+                        'Abonar Dinero Extra a esta Meta',
+                        style: TextStyle(
+                          color: TivoColors.statusIncomeGreenLight,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             
             const Text('COLOR IDENTIFICADOR', style: TextStyle(color: TivoColors.textTertiary, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.0)),
