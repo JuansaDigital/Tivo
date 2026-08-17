@@ -7,6 +7,9 @@ import '../../../core/widgets/glass_card.dart';
 import '../../accounts/data/account_provider.dart';
 import '../../transactions/data/transaction_provider.dart';
 import '../../reminders/data/reminders_provider.dart';
+import '../../savings/data/savings_provider.dart';
+import '../../budgets/data/budget_provider.dart';
+import '../../shared_finances/data/split_bill_provider.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../../core/providers/currency_provider.dart';
 
@@ -24,7 +27,7 @@ class SettingsScreen extends ConsumerWidget {
             style: TextStyle(color: TivoColors.statusExpenseRoseLight, fontWeight: FontWeight.bold),
           ),
           content: const Text(
-            '¿Estás seguro de que deseas eliminar permanentemente todas tus cuentas, transacciones y recordatorios? Esta acción no se puede deshacer.',
+            '¿Estás seguro de que deseas eliminar permanentemente todas tus cuentas, números, ingresos, gastos, presupuestos y metas? Esta acción dejará la app en 0.',
             style: TextStyle(color: TivoColors.textSecondary, fontSize: 14),
           ),
           actions: [
@@ -34,14 +37,17 @@ class SettingsScreen extends ConsumerWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                // Wipe data
+                // Wipe all financial data 100%
                 ref.read(accountListProvider.notifier).reset();
                 ref.read(transactionListProvider.notifier).reset();
                 ref.read(reminderListProvider.notifier).reset();
+                ref.read(savingsListProvider.notifier).reset();
+                ref.read(budgetListProvider.notifier).reset();
+                ref.read(splitBillListProvider.notifier).reset();
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Todos los datos han sido borrados'),
+                    content: Text('Toda la información financiera ha sido borrada con éxito (0.0).'),
                     backgroundColor: TivoColors.statusExpenseRose,
                   ),
                 );

@@ -76,7 +76,6 @@ final financialMetricsProvider = Provider<FinancialMetrics>((ref) {
       totalExpenses += t.amount;
     }
   }
-  if (totalIncome == 0) totalIncome = 5000000; // Base inicial de referencia
 
   // 3. Compromisos Fijos Pendientes (Módulo 3: Arriendos, Servicios no pagados)
   double pendingCommitted = 0.0;
@@ -102,34 +101,36 @@ final financialMetricsProvider = Provider<FinancialMetrics>((ref) {
   final daysRemaining = (daysInMonth - now.day) + 1;
   final double safeToday = (safeTotal / (daysRemaining > 0 ? daysRemaining : 1)).clamp(0.0, double.infinity);
 
-  // 5. Pista Financiera (Meses de supervivencia con gasto promedio ~2.5M)
-  final double avgMonthlyBurn = totalExpenses > 1000000 ? totalExpenses : 2500000;
-  final double runway = (liquidCash / avgMonthlyBurn);
+  // 5. Pista Financiera (Meses de supervivencia con gasto promedio)
+  final double avgMonthlyBurn = totalExpenses > 0 ? totalExpenses : 1.0;
+  final double runway = liquidCash > 0 ? (liquidCash / avgMonthlyBurn) : 0.0;
 
   // 6. Utilización de Crédito
   final double creditUtilization = totalCreditLimit > 0 ? (totalDebt / totalCreditLimit) : 0.0;
 
-  // 7. Tivo Score 0-100 pts (PRD Módulo 1.3):
-  // - Tasa de Ahorro Real (30 pts): 30 si >= 20%
-  // - Utilización de Crédito (30 pts): 30 si <= 30%
-  // - Puntualidad de Pagos (20 pts): 20 si sin mora
-  // - Fondo de Emergencia (20 pts): 20 si >= 3 meses de gastos
+  // 7. Tivo Score 0-100 pts
   double score = 0;
-  // Ahorro
-  score += 30;
-  // Crédito (<30% de uso)
-  if (creditUtilization <= 0.30) {
-    score += 30;
-  } else {
-    score += (30 - ((creditUtilization - 0.30) * 50)).clamp(0.0, 30.0);
-  }
-  // Puntualidad
-  score += 20;
-  // Fondo de Emergencia
-  if (runway >= 3.0) {
+  if (accounts.isNotEmpty || transactions.isNotEmpty) {
+    // Ahorro
+    if (totalIncome > 0 && (totalIncome - totalExpenses) / totalIncome >= 0.2) {
+      score += 30;
+    } else if (totalIncome > 0) {
+      score += (((totalIncome - totalExpenses) / totalIncome) * 150).clamp(0.0, 30.0);
+    }
+    // Crédito (<30% de uso)
+    if (creditUtilization <= 0.30) {
+      score += 30;
+    } else {
+      score += (30 - ((creditUtilization - 0.30) * 50)).clamp(0.0, 30.0);
+    }
+    // Puntualidad
     score += 20;
-  } else {
-    score += (runway / 3.0 * 20).clamp(0.0, 20.0);
+    // Fondo de Emergencia
+    if (runway >= 3.0) {
+      score += 20;
+    } else {
+      score += (runway / 3.0 * 20).clamp(0.0, 20.0);
+    }
   }
 
   return FinancialMetrics(

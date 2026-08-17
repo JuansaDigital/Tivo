@@ -16,7 +16,6 @@ import '../data/transaction_provider.dart';
 import '../domain/models/transaction_model.dart';
 import 'add_transaction_modal.dart';
 import 'widgets/expense_chart.dart';
-import '../../accounts/presentation/account_form_modal.dart';
 
 class FinancesScreen extends ConsumerStatefulWidget {
   const FinancesScreen({super.key});
@@ -128,7 +127,7 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
                 _buildBudgetsView(),
               ] else ...[
                 // Subtab 3: Calendario Financiero Interactivo
-                _buildCalendarView(),
+                _buildCalendarTab(),
               ],
             ],
           ),
@@ -213,25 +212,12 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
     double totalExpense = 0;
 
     for (var t in expenses) {
-      categoryData[t.category] = (categoryData[t.category] ?? 0) + t.amount;
+      final catName = t.category.toString().split('.').last;
+      categoryData[catName] = (categoryData[catName] ?? 0) + t.amount;
       totalExpense += t.amount;
     }
 
-    return GlassCard(
-      padding: const EdgeInsets.all(18),
-      borderRadius: TivoSpacing.radiusLg,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Resumen de Gastos',
-            style: TextStyle(color: TivoColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 16),
-          ExpenseChart(categoryData: categoryData, totalAmount: totalExpense),
-        ],
-      ),
-    );
+    return ExpenseChart(categoryData: categoryData, totalAmount: totalExpense);
   }
 
   Widget _buildDateSelector() {
@@ -339,71 +325,96 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
         final t = filtered[index];
         final isIncome = t.type == TransactionType.income;
 
-        return GlassCard(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          borderRadius: TivoSpacing.radiusMd,
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: t.category.color.withOpacity(0.18),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(t.category.icon, size: 18, color: t.category.color),
+        return Dismissible(
+          key: Key(t.id),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            decoration: BoxDecoration(
+              color: TivoColors.statusExpenseRose,
+              borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+            ),
+            child: const Icon(LucideIcons.trash2, color: Colors.white),
+          ),
+          onDismissed: (_) {
+            ref.read(transactionListProvider.notifier).deleteTransaction(t.id);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Movimiento "${t.title}" eliminado'),
+                backgroundColor: TivoColors.statusExpenseRose,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t.title,
-                      style: const TextStyle(
-                        color: TivoColors.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        Text(
-                          '${t.category.label} • ${DateFormatter.formatRelative(t.date)}',
-                          style: const TextStyle(color: TivoColors.textTertiary, fontSize: 11),
+            );
+          },
+          child: GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            borderRadius: TivoSpacing.radiusMd,
+            onTap: () {
+              AddTransactionModal.show(context, transactionToEdit: t);
+            },
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: t.category.color.withOpacity(0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(t.category.icon, size: 18, color: t.category.color),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.title,
+                        style: const TextStyle(
+                          color: TivoColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
-                        if (t.tag != null) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: TivoColors.primaryIceBlue.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              t.tag!,
-                              style: const TextStyle(
-                                color: TivoColors.primaryIceBlue,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Text(
+                            '${t.category.label} • ${t.accountName}',
+                            style: const TextStyle(color: TivoColors.textTertiary, fontSize: 11),
+                          ),
+                          if (t.tag != null) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: TivoColors.primaryIceBlue.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                t.tag!,
+                                style: const TextStyle(
+                                  color: TivoColors.primaryIceBlue,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Text(
-                '${isIncome ? '+' : '-'}${CurrencyFormatter.formatCOP(t.amount)}',
-                style: TextStyle(
-                  color: isIncome ? TivoColors.statusIncomeGreenLight : TivoColors.statusExpenseRoseLight,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
+                Text(
+                  '${isIncome ? '+' : '-'}${CurrencyFormatter.formatCOP(t.amount)}',
+                  style: TextStyle(
+                    color: isIncome ? TivoColors.statusIncomeGreenLight : TivoColors.statusExpenseRoseLight,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -571,7 +582,12 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
           height: 54,
           child: ElevatedButton.icon(
             onPressed: () {
-              AccountFormModal.show(context);
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => const AccountFormModal(),
+              );
             },
             icon: const Icon(LucideIcons.plus, size: 20),
             label: const Text(

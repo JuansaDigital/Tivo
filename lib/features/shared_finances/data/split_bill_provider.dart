@@ -61,4 +61,8 @@ class SplitBillNotifier extends StateNotifier<List<SplitBillModel>> {
   void addSplitBill(SplitBillModel bill) {
     state = [bill, ...state];
   }
+
+  void reset() {
+    state = [];
+  }
 }

@@ -4,8 +4,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/constants/tivo_colors.dart';
 import '../../../core/constants/tivo_spacing.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/tivo_button.dart';
+import '../../accounts/data/account_provider.dart';
+import '../../accounts/domain/models/account_model.dart';
+import '../../accounts/presentation/account_form_modal.dart';
 import '../data/transaction_provider.dart';
 import '../domain/models/transaction_model.dart';
 
@@ -33,15 +37,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   late TransactionType _type;
   late ExpenseCategory _category;
   late NecessityType _necessity;
-  late String _selectedAccount;
-
-  final List<String> _accounts = [
-    'Bancolombia Ahorros',
-    'Tarjeta Visa Black',
-    'Nu Bank Ahorros',
-    'Lulo Bank Rendimientos',
-    'Efectivo',
-  ];
+  String? _selectedAccountName;
 
   @override
   void initState() {
@@ -52,10 +48,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     _type = t?.type ?? TransactionType.expense;
     _category = t?.category ?? ExpenseCategory.food;
     _necessity = t?.necessity ?? NecessityType.need;
-    _selectedAccount = t?.accountName ?? _accounts.first;
-    if (!_accounts.contains(_selectedAccount)) {
-      _accounts.add(_selectedAccount);
-    }
+    _selectedAccountName = t?.accountName;
   }
 
   @override
@@ -63,6 +56,35 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     _amountController.dispose();
     _titleController.dispose();
     super.dispose();
+  }
+
+  void _syncAccountBalance({
+    required String? accountName,
+    required double amount,
+    required TransactionType type,
+    required bool isReversion,
+  }) {
+    if (accountName == null) return;
+    final accounts = ref.read(accountListProvider);
+    final match = accounts.where((a) => a.name == accountName || '${a.institutionName} ${a.name}'.contains(accountName)).toList();
+    if (match.isEmpty) return;
+
+    final targetAccount = match.first;
+    double newBalance = targetAccount.balance;
+
+    if (type == TransactionType.expense) {
+      // Expense reduces savings/cash or increases credit card balance
+      if (targetAccount.type == AccountType.creditCard) {
+        newBalance += isReversion ? -amount : amount;
+      } else {
+        newBalance += isReversion ? amount : -amount;
+      }
+    } else if (type == TransactionType.income) {
+      // Income increases savings/cash
+      newBalance += isReversion ? -amount : amount;
+    }
+
+    ref.read(accountListProvider.notifier).updateBalance(targetAccount.id, newBalance);
   }
 
   void _save() {
@@ -79,6 +101,27 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
       return;
     }
 
+    final accounts = ref.read(accountListProvider);
+    String finalAccountName = _selectedAccountName ?? (accounts.isNotEmpty ? accounts.first.name : 'Efectivo');
+
+    if (widget.transactionToEdit != null) {
+      // Revert previous transaction impact on balance
+      _syncAccountBalance(
+        accountName: widget.transactionToEdit!.accountName,
+        amount: widget.transactionToEdit!.amount,
+        type: widget.transactionToEdit!.type,
+        isReversion: true,
+      );
+    }
+
+    // Apply new balance impact
+    _syncAccountBalance(
+      accountName: finalAccountName,
+      amount: amount,
+      type: _type,
+      isReversion: false,
+    );
+
     final newTransaction = TransactionModel(
       id: widget.transactionToEdit?.id ?? const Uuid().v4(),
       title: _titleController.text.trim(),
@@ -86,7 +129,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
       type: _type,
       category: _category,
       necessity: _necessity,
-      accountName: _selectedAccount,
+      accountName: finalAccountName,
       date: widget.transactionToEdit?.date ?? DateTime.now(),
     );
 
@@ -99,15 +142,39 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Transacción "${newTransaction.title}" registrada exitosamente.'),
+        content: Text('Movimiento "${newTransaction.title}" guardado y sincronizado.'),
         backgroundColor: TivoColors.statusIncomeGreen,
       ),
     );
   }
 
+  void _delete() {
+    if (widget.transactionToEdit != null) {
+      _syncAccountBalance(
+        accountName: widget.transactionToEdit!.accountName,
+        amount: widget.transactionToEdit!.amount,
+        type: widget.transactionToEdit!.type,
+        isReversion: true,
+      );
+      ref.read(transactionListProvider.notifier).deleteTransaction(widget.transactionToEdit!.id);
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Movimiento eliminado y saldo restaurado.'),
+          backgroundColor: TivoColors.statusExpenseRose,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final accounts = ref.watch(accountListProvider);
+
+    if (_selectedAccountName == null && accounts.isNotEmpty) {
+      _selectedAccountName = accounts.first.name;
+    }
 
     return Container(
       margin: EdgeInsets.only(bottom: bottomInset),
@@ -132,29 +199,25 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                 ),
               ),
               const SizedBox(height: 18),
-              if (widget.transactionToEdit != null) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Editar Movimiento',
-                      style: TextStyle(
-                        color: TivoColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    widget.transactionToEdit != null ? 'Editar Movimiento' : 'Nuevo Movimiento',
+                    style: const TextStyle(
+                      color: TivoColors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
                     ),
+                  ),
+                  if (widget.transactionToEdit != null)
                     IconButton(
                       icon: const Icon(LucideIcons.trash2, color: TivoColors.statusExpenseRose),
-                      onPressed: () {
-                        ref.read(transactionListProvider.notifier).deleteTransaction(widget.transactionToEdit!.id);
-                        Navigator.pop(context);
-                      },
+                      onPressed: _delete,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-              ],
+                ],
+              ),
+              const SizedBox(height: 14),
 
               // Selector de Tipo (Gasto vs Ingreso)
               Row(
@@ -184,7 +247,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
 
               // Campo de Monto
               const Text(
-                'Monto (COP)',
+                'Monto',
                 style: TextStyle(
                   color: TivoColors.textSecondary,
                   fontSize: 12,
@@ -229,7 +292,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
 
               // Campo de Descripción
               const Text(
-                'Concepto / Comercio',
+                'Concepto / Descripción',
                 style: TextStyle(
                   color: TivoColors.textSecondary,
                   fontSize: 12,
@@ -241,7 +304,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                 controller: _titleController,
                 style: const TextStyle(color: TivoColors.textPrimary, fontSize: 15),
                 decoration: InputDecoration(
-                  hintText: 'Ej: Mercado, Almuerzo, Uber...',
+                  hintText: 'Ej: Mercado, Almuerzo, Uber, Salario...',
                   hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
                   filled: true,
                   fillColor: Colors.black.withOpacity(0.25),
@@ -257,6 +320,134 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
               ),
               const SizedBox(height: 16),
 
+              // Selector de Cuenta Dinámico
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Cuenta de Origen / Destino',
+                    style: TextStyle(
+                      color: TivoColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => const AccountFormModal(),
+                      );
+                    },
+                    child: const Text(
+                      '+ Nueva Cuenta',
+                      style: TextStyle(
+                        color: TivoColors.primaryIceBlue,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              if (accounts.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'No hay cuentas creadas',
+                        style: TextStyle(color: TivoColors.textTertiary, fontSize: 12),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) => const AccountFormModal(),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: TivoColors.primaryIceBlue,
+                          foregroundColor: const Color(0xFF070E22),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        ),
+                        child: const Text('Crear', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: accounts.map((acc) {
+                      final isSelected = _selectedAccountName == acc.name;
+                      final typeIcon = acc.type == AccountType.creditCard
+                          ? LucideIcons.creditCard
+                          : acc.type == AccountType.cash
+                              ? LucideIcons.banknote
+                              : LucideIcons.landmark;
+
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedAccountName = acc.name),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? TivoColors.primaryIceBlue.withOpacity(0.2)
+                                : Colors.black.withOpacity(0.25),
+                            borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                            border: Border.all(
+                              color: isSelected ? TivoColors.primaryIceBlue : Colors.white10,
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(typeIcon, size: 14, color: isSelected ? TivoColors.primaryIceBlue : TivoColors.textSecondary),
+                              const SizedBox(width: 6),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    acc.name,
+                                    style: TextStyle(
+                                      color: isSelected ? TivoColors.textPrimary : TivoColors.textSecondary,
+                                      fontSize: 12,
+                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    CurrencyFormatter.formatCompact(acc.balance),
+                                    style: const TextStyle(
+                                      color: TivoColors.textTertiary,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              const SizedBox(height: 16),
+
               // Selector de Categoría
               const Text(
                 'Categoría',
@@ -266,7 +457,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -306,51 +497,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
               ),
               const SizedBox(height: 16),
 
-              // Selector de Cuenta
-              const Text(
-                'Cuenta Origen / Destino',
-                style: TextStyle(
-                  color: TivoColors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _accounts.map((acc) {
-                    final isSelected = _selectedAccount == acc;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedAccount = acc),
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? TivoColors.primaryIceBlue.withOpacity(0.2)
-                              : Colors.black.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(TivoSpacing.radiusPill),
-                          border: Border.all(
-                            color: isSelected ? TivoColors.primaryIceBlue : Colors.white10,
-                          ),
-                        ),
-                        child: Text(
-                          acc,
-                          style: TextStyle(
-                            color: isSelected ? TivoColors.textPrimary : TivoColors.textSecondary,
-                            fontSize: 12,
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Selector de Necesidad (Neuroeconomía)
+              // Selector de Necesidad
               if (_type == TransactionType.expense) ...[
                 const Text(
                   'Clasificación Neurofinanciera',
@@ -399,13 +546,13 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
               ],
 
               // Botón Guardar
               TivoButton(
                 width: double.infinity,
-                label: 'Guardar Transacción',
+                label: widget.transactionToEdit != null ? 'Actualizar Movimiento' : 'Guardar Transacción',
                 icon: LucideIcons.check,
                 onPressed: _save,
               ),

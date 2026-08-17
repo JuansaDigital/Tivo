@@ -39,4 +39,8 @@ class SavingsNotifier extends StateNotifier<List<SavingsGoalModel>> {
   void deleteGoal(String id) {
     state = state.where((g) => g.id != id).toList();
   }
+
+  void reset() {
+    state = [];
+  }
 }

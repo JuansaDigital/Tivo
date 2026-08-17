@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/tivo_theme.dart';
-import 'features/auth/presentation/lock_screen.dart';
-import 'features/main_layout/main_navigation_shell.dart';
+import 'features/auth/presentation/welcome_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +34,7 @@ class TivoApp extends StatelessWidget {
       title: 'Tivo — Ecosistema Financiero Inteligente',
       debugShowCheckedModeBanner: false,
       theme: TivoTheme.darkTheme,
-      home: const LockScreen(),
+      home: const WelcomeScreen(),
     );
   }
 }

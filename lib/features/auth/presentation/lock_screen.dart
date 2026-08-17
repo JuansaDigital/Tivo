@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/tivo_colors.dart';
-import '../../../../core/constants/tivo_spacing.dart';
 import '../../main_layout/main_navigation_shell.dart';
 
 class LockScreen extends StatefulWidget {
@@ -15,31 +14,21 @@ class LockScreen extends StatefulWidget {
 class _LockScreenState extends State<LockScreen> {
   final LocalAuthentication auth = LocalAuthentication();
   String _pin = '';
-  final String _correctPin = '1234'; // Simulated PIN
+  final String _correctPin = '1234';
   bool _isAuthenticating = false;
 
   @override
   void initState() {
     super.initState();
-    _checkBiometrics();
-  }
-
-  Future<void> _checkBiometrics() async {
-    bool canCheckBiometrics = await auth.canCheckBiometrics;
-    if (canCheckBiometrics) {
-      _authenticate();
-    }
+    // Do NOT auto-trigger biometrics on cold start to prevent unwanted system dialog popups.
   }
 
   Future<void> _authenticate() async {
     try {
       setState(() => _isAuthenticating = true);
       bool authenticated = await auth.authenticate(
-        localizedReason: 'Por favor autentícate para acceder a TIVO',
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: false,
-        ),
+        localizedReason: 'Autentícate para acceder a tu panel de TIVO',
+        biometricOnly: false,
       );
       setState(() => _isAuthenticating = false);
       if (authenticated && mounted) {
@@ -47,6 +36,14 @@ class _LockScreenState extends State<LockScreen> {
       }
     } catch (e) {
       setState(() => _isAuthenticating = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Usa tu PIN (1234) para ingresar'),
+            backgroundColor: TivoColors.statusWarningAmber,
+          ),
+        );
+      }
     }
   }
 
@@ -58,7 +55,11 @@ class _LockScreenState extends State<LockScreen> {
           _unlock();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('PIN incorrecto. (Usa 1234)'), backgroundColor: TivoColors.statusExpenseRose),
+            const SnackBar(
+              content: Text('PIN incorrecto. (Usa 1234)'),
+              backgroundColor: TivoColors.statusExpenseRose,
+              duration: Duration(seconds: 2),
+            ),
           );
           setState(() => _pin = '');
         }
@@ -73,8 +74,9 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   void _unlock() {
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MainNavigationShell()),
+      (route) => false,
     );
   }
 
@@ -82,36 +84,82 @@ class _LockScreenState extends State<LockScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF070E22),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(LucideIcons.arrowLeft, color: TivoColors.textPrimary),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Spacer(),
-            const Icon(LucideIcons.shieldCheck, size: 64, color: TivoColors.primaryIceBlue),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: TivoColors.primaryIceBlue.withOpacity(0.12),
+                border: Border.all(color: TivoColors.primaryIceBlue.withOpacity(0.3)),
+              ),
+              child: const Icon(
+                LucideIcons.lock,
+                size: 40,
+                color: TivoColors.primaryIceBlue,
+              ),
+            ),
             const SizedBox(height: 24),
             const Text(
-              'Ingresa tu PIN',
-              style: TextStyle(color: TivoColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w700),
+              'Ingresa tu PIN de Seguridad',
+              style: TextStyle(
+                color: TivoColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'PIN predeterminado: 1234',
+              style: TextStyle(
+                color: TivoColors.textTertiary,
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(4, (index) {
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                  width: 16,
-                  height: 16,
+                final isFilled = _pin.length > index;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                  width: isFilled ? 18 : 14,
+                  height: isFilled ? 18 : 14,
                   decoration: BoxDecoration(
-                    color: _pin.length > index ? TivoColors.primaryIceBlue : Colors.transparent,
+                    color: isFilled ? TivoColors.accentElectricCyan : Colors.transparent,
                     shape: BoxShape.circle,
-                    border: Border.all(color: _pin.length > index ? TivoColors.primaryIceBlue : Colors.white24, width: 2),
+                    border: Border.all(
+                      color: isFilled ? TivoColors.accentElectricCyan : Colors.white24,
+                      width: 2,
+                    ),
+                    boxShadow: isFilled
+                        ? [
+                            BoxShadow(
+                              color: TivoColors.accentElectricCyan.withOpacity(0.5),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null,
                   ),
                 );
               }),
             ),
             const Spacer(),
             _buildKeypad(),
-            const SizedBox(height: 48),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -120,7 +168,7 @@ class _LockScreenState extends State<LockScreen> {
 
   Widget _buildKeypad() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
+      padding: const EdgeInsets.symmetric(horizontal: 48),
       child: Column(
         children: [
           Row(
@@ -129,27 +177,35 @@ class _LockScreenState extends State<LockScreen> {
               _buildKey('1'), _buildKey('2'), _buildKey('3'),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildKey('4'), _buildKey('5'), _buildKey('6'),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildKey('7'), _buildKey('8'), _buildKey('9'),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildIconButton(LucideIcons.scanFace, _authenticate),
+              _buildIconButton(
+                LucideIcons.scanFace,
+                _isAuthenticating ? null : _authenticate,
+                tooltip: 'Face ID / Huella',
+              ),
               _buildKey('0'),
-              _buildIconButton(LucideIcons.delete, _onDeleteTap),
+              _buildIconButton(
+                LucideIcons.delete,
+                _onDeleteTap,
+                tooltip: 'Borrar',
+              ),
             ],
           ),
         ],
@@ -161,34 +217,39 @@ class _LockScreenState extends State<LockScreen> {
     return GestureDetector(
       onTap: () => _onKeypadTap(value),
       child: Container(
-        width: 72,
-        height: 72,
+        width: 70,
+        height: 70,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withOpacity(0.06),
           shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
         ),
         child: Center(
           child: Text(
             value,
-            style: const TextStyle(color: TivoColors.textPrimary, fontSize: 28, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: TivoColors.textPrimary,
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildIconButton(IconData icon, VoidCallback onTap) {
+  Widget _buildIconButton(IconData icon, VoidCallback? onTap, {String? tooltip}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 72,
-        height: 72,
-        decoration: const BoxDecoration(
-          color: Colors.transparent,
+        width: 70,
+        height: 70,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.03),
           shape: BoxShape.circle,
         ),
         child: Center(
-          child: Icon(icon, color: TivoColors.textSecondary, size: 28),
+          child: Icon(icon, color: TivoColors.primaryIceBlue, size: 26),
         ),
       ),
     );

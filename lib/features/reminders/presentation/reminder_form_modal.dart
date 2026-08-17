@@ -9,15 +9,23 @@ import '../domain/models/reminder_model.dart';
 
 class ReminderFormModal extends ConsumerStatefulWidget {
   final ReminderModel? reminderToEdit;
+  final ReminderPillar? initialPillar;
 
-  const ReminderFormModal({super.key, this.reminderToEdit});
+  const ReminderFormModal({super.key, this.reminderToEdit, this.initialPillar});
 
-  static Future<void> show(BuildContext context, {ReminderModel? reminderToEdit}) {
+  static Future<void> show(
+    BuildContext context, {
+    ReminderModel? reminderToEdit,
+    ReminderPillar? initialPillar,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ReminderFormModal(reminderToEdit: reminderToEdit),
+      builder: (context) => ReminderFormModal(
+        reminderToEdit: reminderToEdit,
+        initialPillar: initialPillar,
+      ),
     );
   }
 
@@ -39,7 +47,7 @@ class _ReminderFormModalState extends ConsumerState<ReminderFormModal> {
     _titleController = TextEditingController(text: r?.title ?? '');
     _amountController = TextEditingController(text: r?.estimatedAmount.toStringAsFixed(0) ?? '');
     _notesController = TextEditingController(text: r?.notes ?? '');
-    _selectedPillar = r?.pillar ?? ReminderPillar.fixedUtility;
+    _selectedPillar = r?.pillar ?? widget.initialPillar ?? ReminderPillar.fixedUtility;
     _selectedDate = r?.dueDate ?? DateTime.now().add(const Duration(days: 1));
   }
 

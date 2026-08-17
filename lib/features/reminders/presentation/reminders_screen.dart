@@ -6,7 +6,6 @@ import '../../../core/constants/tivo_spacing.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../savings/data/savings_provider.dart';
-import '../../savings/domain/models/savings_model.dart';
 import '../../savings/presentation/savings_form_modal.dart';
 import '../data/reminders_provider.dart';
 import '../domain/models/reminder_model.dart';
@@ -65,23 +64,57 @@ class RemindersScreen extends ConsumerWidget {
               const SizedBox(height: 18),
 
               // 📌 Servicios Públicos, Suscripciones y Pagos Fijos
-              _buildSectionHeader(
-                icon: LucideIcons.receiptText,
-                title: 'Servicios & Pagos Fijos',
-                subtitle: 'Facturas recurrentes con pago 1-Tap',
-                badgeColor: TivoColors.primaryIceBlue,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: _buildSectionHeader(
+                      icon: LucideIcons.receiptText,
+                      title: 'Servicios & Pagos Fijos',
+                      subtitle: 'Facturas recurrentes con pago 1-Tap',
+                      badgeColor: TivoColors.primaryIceBlue,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(LucideIcons.plusCircle, color: TivoColors.primaryIceBlue),
+                    onPressed: () {
+                      ReminderFormModal.show(context, initialPillar: ReminderPillar.fixedUtility);
+                    },
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-              ...fixedUtilities.map((r) => _ReminderCard(reminder: r)),
+              if (fixedUtilities.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: Text('No hay servicios registrados', style: TextStyle(color: TivoColors.textTertiary, fontSize: 12)),
+                  ),
+                )
+              else
+                ...fixedUtilities.map((r) => _ReminderCard(reminder: r)),
 
               const SizedBox(height: 22),
 
               // 📌 Tarjetas de Crédito y Deudas
-              _buildSectionHeader(
-                icon: LucideIcons.creditCard,
-                title: 'Tarjetas & Deudas',
-                subtitle: 'Fechas de corte, pago total vs mínimo',
-                badgeColor: TivoColors.statusExpenseRose,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: _buildSectionHeader(
+                      icon: LucideIcons.creditCard,
+                      title: 'Tarjetas & Deudas',
+                      subtitle: 'Fechas de corte, pago total vs mínimo',
+                      badgeColor: TivoColors.statusExpenseRose,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(LucideIcons.plusCircle, color: TivoColors.statusExpenseRose),
+                    onPressed: () {
+                      ReminderFormModal.show(context, initialPillar: ReminderPillar.creditDebt);
+                    },
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               // Tip de optimización de corte
@@ -256,7 +289,7 @@ class RemindersScreen extends ConsumerWidget {
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -338,26 +371,30 @@ class _ReminderCard extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      CurrencyFormatter.formatCOP(reminder.estimatedAmount),
-                      style: const TextStyle(
-                        color: TivoColors.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    if (reminder.notes != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2.0),
-                        child: Text(
-                          reminder.notes!,
-                          style: const TextStyle(color: TivoColors.textTertiary, fontSize: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        CurrencyFormatter.formatCOP(reminder.estimatedAmount),
+                        style: const TextStyle(
+                          color: TivoColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                  ],
+                      if (reminder.notes != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2.0),
+                          child: Text(
+                            reminder.notes!,
+                            style: const TextStyle(color: TivoColors.textTertiary, fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
                 if (!reminder.isPaid)
                   ElevatedButton(
