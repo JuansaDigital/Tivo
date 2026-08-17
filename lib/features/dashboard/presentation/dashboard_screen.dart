@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/tivo_colors.dart';
-import '../../../core/constants/tivo_spacing.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../transactions/data/transaction_provider.dart';
@@ -178,42 +177,14 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
+                      children: const [
+                        Text(
                           'BALANCE TOTAL NETO',
                           style: TextStyle(
                             color: TivoColors.textSecondary,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.1,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: TivoColors.statusIncomeGreen.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(TivoSpacing.radiusPill),
-                            border: Border.all(
-                              color: TivoColors.statusIncomeGreen.withOpacity(0.4),
-                            ),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(
-                                LucideIcons.trendingUp,
-                                size: 12,
-                                color: TivoColors.statusIncomeGreenLight,
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                '+4.8% este mes',
-                                style: TextStyle(
-                                  color: TivoColors.statusIncomeGreenLight,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
                           ),
                         ),
                       ],
