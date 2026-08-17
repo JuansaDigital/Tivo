@@ -10,6 +10,9 @@ class KPICardsRow extends StatelessWidget {
   final double expenses;
   final double savings;
   final bool isPrivacy;
+  final VoidCallback? onTapIncome;
+  final VoidCallback? onTapExpenses;
+  final VoidCallback? onTapSavings;
 
   const KPICardsRow({
     super.key,
@@ -17,6 +20,9 @@ class KPICardsRow extends StatelessWidget {
     required this.expenses,
     required this.savings,
     required this.isPrivacy,
+    this.onTapIncome,
+    this.onTapExpenses,
+    this.onTapSavings,
   });
 
   @override
@@ -29,6 +35,7 @@ class KPICardsRow extends StatelessWidget {
           icon: LucideIcons.arrowDownLeft,
           color: TivoColors.statusIncomeGreen,
           isPrivacy: isPrivacy,
+          onTap: onTapIncome,
         ),
         const SizedBox(width: 8),
         _KPICard(
@@ -37,6 +44,7 @@ class KPICardsRow extends StatelessWidget {
           icon: LucideIcons.arrowUpRight,
           color: TivoColors.statusExpenseRose,
           isPrivacy: isPrivacy,
+          onTap: onTapExpenses,
         ),
         const SizedBox(width: 8),
         _KPICard(
@@ -45,6 +53,7 @@ class KPICardsRow extends StatelessWidget {
           icon: LucideIcons.piggyBank,
           color: TivoColors.primaryIceBlue,
           isPrivacy: isPrivacy,
+          onTap: onTapSavings,
         ),
       ],
     );
@@ -57,6 +66,7 @@ class _KPICard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final bool isPrivacy;
+  final VoidCallback? onTap;
 
   const _KPICard({
     required this.title,
@@ -64,6 +74,7 @@ class _KPICard extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.isPrivacy,
+    this.onTap,
   });
 
   @override
@@ -72,6 +83,7 @@ class _KPICard extends StatelessWidget {
       child: GlassCard(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         borderRadius: TivoSpacing.radiusMd,
+        onTap: onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -107,7 +119,6 @@ class _KPICard extends StatelessWidget {
                 color: TivoColors.textPrimary,
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

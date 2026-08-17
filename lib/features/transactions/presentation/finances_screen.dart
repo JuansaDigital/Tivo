@@ -16,16 +16,19 @@ import '../data/transaction_provider.dart';
 import '../domain/models/transaction_model.dart';
 import 'add_transaction_modal.dart';
 import 'widgets/expense_chart.dart';
+import '../../savings/data/savings_provider.dart';
+import '../../savings/presentation/savings_form_modal.dart';
 
 class FinancesScreen extends ConsumerStatefulWidget {
-  const FinancesScreen({super.key});
+  final int initialSubTab;
+  const FinancesScreen({super.key, this.initialSubTab = 0});
 
   @override
   ConsumerState<FinancesScreen> createState() => _FinancesScreenState();
 }
 
 class _FinancesScreenState extends ConsumerState<FinancesScreen> {
-  int _selectedSubTab = 0; // 0: Movimientos, 1: Cuentas & Tarjetas, 2: Presupuestos, 3: Calendario
+  late int _selectedSubTab;
   TransactionType? _typeFilter;
   DateTime? _selectedDateFilter;
 
@@ -35,6 +38,7 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedSubTab = widget.initialSubTab;
     _selectedDateFilter = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
   }
 
@@ -69,7 +73,7 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Motor Operativo & Cuentas',
+                        'Motor Operativo, Cuentas & Ahorro',
                         style: TextStyle(color: TivoColors.textSecondary, fontSize: 13),
                       ),
                     ],
@@ -90,7 +94,7 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Barra de Subpestañas (Glassmorphic Segmented Control)
+              // Barra de Subpestañas (Glassmorphic Segmented Control con 5 pestañas)
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
@@ -98,13 +102,17 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
                   borderRadius: BorderRadius.circular(TivoSpacing.radiusPill),
                   border: Border.all(color: Colors.white.withOpacity(0.08)),
                 ),
-                child: Row(
-                  children: [
-                    _subTabItem('Movimientos', 0),
-                    _subTabItem('Cuentas', 1),
-                    _subTabItem('Presupuestos', 2),
-                    _subTabItem('Calendario', 3),
-                  ],
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _subTabItem('Movimientos', 0),
+                      _subTabItem('Cuentas', 1),
+                      _subTabItem('Presupuestos', 2),
+                      _subTabItem('Ahorro', 3),
+                      _subTabItem('Calendario', 4),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 18),
@@ -125,8 +133,11 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
               ] else if (_selectedSubTab == 2) ...[
                 // Subtab 2: Presupuestos por Categoría
                 _buildBudgetsView(),
+              ] else if (_selectedSubTab == 3) ...[
+                // Subtab 3: Metas de Ahorro
+                _buildSavingsView(),
               ] else ...[
-                // Subtab 3: Calendario Financiero Interactivo
+                // Subtab 4: Calendario Financiero Interactivo
                 _buildCalendarTab(),
               ],
             ],
@@ -138,28 +149,266 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
 
   Widget _subTabItem(String title, int index) {
     final isSelected = _selectedSubTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedSubTab = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? TivoColors.primaryIceBlue : Colors.transparent,
-            borderRadius: BorderRadius.circular(TivoSpacing.radiusPill),
-          ),
-          child: Center(
-            child: Text(
-              title,
-              style: TextStyle(
-                color: isSelected ? const Color(0xFF070E22) : TivoColors.textSecondary,
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-              ),
+    return GestureDetector(
+      onTap: () => setState(() => _selectedSubTab = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? TivoColors.primaryIceBlue : Colors.transparent,
+          borderRadius: BorderRadius.circular(TivoSpacing.radiusPill),
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: isSelected ? const Color(0xFF070E22) : TivoColors.textSecondary,
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSavingsView() {
+    final savingsGoals = ref.watch(savingsListProvider);
+
+    double totalCurrent = 0;
+    double totalTarget = 0;
+    for (var g in savingsGoals) {
+      totalCurrent += g.currentAmount;
+      totalTarget += g.targetAmount;
+    }
+    final totalProgress = totalTarget > 0 ? (totalCurrent / totalTarget).clamp(0.0, 1.0) : 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Tarjeta Resumen Global de Ahorro
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          borderRadius: TivoSpacing.radiusXl,
+          hasGlow: true,
+          glowColor: TivoColors.statusIncomeGreen,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'TOTAL EN METAS DE AHORRO',
+                        style: TextStyle(
+                          color: TivoColors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        CurrencyFormatter.formatCOP(totalCurrent),
+                        style: const TextStyle(
+                          color: TivoColors.textPrimary,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: TivoColors.statusIncomeGreen.withOpacity(0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(LucideIcons.piggyBank, color: TivoColors.statusIncomeGreen, size: 24),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: totalProgress,
+                  backgroundColor: Colors.white.withOpacity(0.08),
+                  valueColor: const AlwaysStoppedAnimation<Color>(TivoColors.statusIncomeGreen),
+                  minHeight: 8,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${(totalProgress * 100).toStringAsFixed(0)}% del objetivo acumulado',
+                    style: const TextStyle(color: TivoColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    'Meta: ${CurrencyFormatter.formatCompact(totalTarget)}',
+                    style: const TextStyle(color: TivoColors.textTertiary, fontSize: 11),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Cabecera con botón de agregar
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Metas y Bolsillos de Reserva',
+              style: TextStyle(color: TivoColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+            IconButton(
+              icon: const Icon(LucideIcons.plusCircle, color: TivoColors.statusIncomeGreen),
+              onPressed: () => SavingsFormModal.show(context),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        if (savingsGoals.isEmpty)
+          GlassCard(
+            padding: const EdgeInsets.all(32),
+            borderRadius: TivoSpacing.radiusLg,
+            child: Center(
+              child: Column(
+                children: [
+                  const Icon(LucideIcons.target, size: 40, color: TivoColors.textTertiary),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'No hay metas de ahorro activas',
+                    style: TextStyle(color: TivoColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Crea una meta (Ej: Vacaciones, Fondo de Emergencia, Comprar Moto) para empezar a ahorrar.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: TivoColors.textSecondary, fontSize: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => SavingsFormModal.show(context),
+                    icon: const Icon(LucideIcons.plus, size: 16),
+                    label: const Text('Nueva Meta de Ahorro'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: TivoColors.statusIncomeGreen,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: savingsGoals.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final g = savingsGoals[index];
+              final progress = (g.currentAmount / g.targetAmount).clamp(0.0, 1.0);
+
+              return Dismissible(
+                key: Key(g.id),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20),
+                  decoration: BoxDecoration(
+                    color: TivoColors.statusExpenseRose,
+                    borderRadius: BorderRadius.circular(TivoSpacing.radiusLg),
+                  ),
+                  child: const Icon(LucideIcons.trash2, color: Colors.white),
+                ),
+                onDismissed: (_) {
+                  ref.read(savingsListProvider.notifier).deleteGoal(g.id);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Meta "${g.title}" eliminada'),
+                      backgroundColor: TivoColors.statusExpenseRose,
+                    ),
+                  );
+                },
+                child: GlassCard(
+                  padding: const EdgeInsets.all(16),
+                  borderRadius: TivoSpacing.radiusLg,
+                  onTap: () => SavingsFormModal.show(context, goalToEdit: g),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              g.title,
+                              style: const TextStyle(
+                                color: TivoColors.textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: g.color.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(TivoSpacing.radiusPill),
+                              border: Border.all(color: g.color.withOpacity(0.4)),
+                            ),
+                            child: Text(
+                              '${(progress * 100).toStringAsFixed(0)}%',
+                              style: TextStyle(color: g.color, fontSize: 11, fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          backgroundColor: Colors.white.withOpacity(0.08),
+                          valueColor: AlwaysStoppedAnimation<Color>(g.color),
+                          minHeight: 6,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Aporte mensual: ${CurrencyFormatter.formatCompact(g.monthlyContribution)}',
+                            style: const TextStyle(color: TivoColors.textTertiary, fontSize: 11),
+                          ),
+                          Text(
+                            '${CurrencyFormatter.formatCompact(g.currentAmount)} / ${CurrencyFormatter.formatCompact(g.targetAmount)}',
+                            style: const TextStyle(
+                              color: TivoColors.textPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
     );
   }
 

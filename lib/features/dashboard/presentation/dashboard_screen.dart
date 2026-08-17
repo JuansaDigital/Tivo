@@ -265,6 +265,9 @@ class DashboardScreen extends ConsumerWidget {
                 expenses: metrics.monthlyExpenses,
                 savings: metrics.safeToSpendMonth,
                 isPrivacy: isPrivacy,
+                onTapIncome: () => onNavigateTab?.call(1),
+                onTapExpenses: () => onNavigateTab?.call(1),
+                onTapSavings: () => onNavigateTab?.call(1),
               ),
               const SizedBox(height: 18),
 
