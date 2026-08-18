@@ -58,33 +58,20 @@ class WelcomeScreen extends StatelessWidget {
                 children: [
                   const Spacer(flex: 1),
 
-                  // Minimalist Futuristic TIVO Logo (Option 3)
+                  // Minimalist Futuristic TIVO Logo (Option 3 - Seamless Background)
                   Center(
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: TivoColors.accentElectricCyan.withOpacity(0.4),
-                            blurRadius: 32,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(60),
-                        child: Image.asset(
-                          'assets/images/tivo_logo.png',
-                          width: 120,
-                          height: 120,
-                          fit: BoxFit.cover,
-                        ),
+                    child: SizedBox(
+                      width: 140,
+                      height: 140,
+                      child: Image.asset(
+                        'assets/images/tivo_logo.png',
+                        width: 140,
+                        height: 140,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
 
                   // Brand Title
                   ShaderMask(
