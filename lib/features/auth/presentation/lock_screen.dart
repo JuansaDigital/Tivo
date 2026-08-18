@@ -1,29 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/tivo_colors.dart';
+import '../../../../core/providers/security_provider.dart';
 import '../../main_layout/main_navigation_shell.dart';
 
-class LockScreen extends StatefulWidget {
+class LockScreen extends ConsumerStatefulWidget {
   const LockScreen({super.key});
 
   @override
-  State<LockScreen> createState() => _LockScreenState();
+  ConsumerState<LockScreen> createState() => _LockScreenState();
 }
 
-class _LockScreenState extends State<LockScreen> {
+class _LockScreenState extends ConsumerState<LockScreen> {
   final LocalAuthentication auth = LocalAuthentication();
   String _pin = '';
-  final String _correctPin = '1234';
   bool _isAuthenticating = false;
 
   @override
   void initState() {
     super.initState();
-    // Do NOT auto-trigger biometrics on cold start to prevent unwanted system dialog popups.
   }
 
   Future<void> _authenticate() async {
+    final isBiometricEnabled = ref.read(biometricEnabledProvider);
+    if (!isBiometricEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El acceso biométrico está desactivado en Configuraciones.'),
+          backgroundColor: TivoColors.statusWarningAmber,
+        ),
+      );
+      return;
+    }
+
     try {
       setState(() => _isAuthenticating = true);
       bool authenticated = await auth.authenticate(
@@ -39,7 +50,7 @@ class _LockScreenState extends State<LockScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Usa tu PIN (1234) para ingresar'),
+            content: Text('Usa tu PIN de seguridad para ingresar'),
             backgroundColor: TivoColors.statusWarningAmber,
           ),
         );
@@ -48,15 +59,16 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   void _onKeypadTap(String value) {
+    final correctPin = ref.read(userPinProvider);
     if (_pin.length < 4) {
       setState(() => _pin += value);
       if (_pin.length == 4) {
-        if (_pin == _correctPin) {
+        if (_pin == correctPin) {
           _unlock();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('PIN incorrecto. (Usa 1234)'),
+              content: Text('PIN incorrecto.'),
               backgroundColor: TivoColors.statusExpenseRose,
               duration: Duration(seconds: 2),
             ),
