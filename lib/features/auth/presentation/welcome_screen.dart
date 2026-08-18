@@ -4,6 +4,7 @@ import '../../../core/constants/tivo_colors.dart';
 import '../../../core/constants/tivo_spacing.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/tivo_button.dart';
+import '../../../core/widgets/tivo_logo.dart';
 import 'lock_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -58,20 +59,11 @@ class WelcomeScreen extends StatelessWidget {
                 children: [
                   const Spacer(flex: 1),
 
-                  // Minimalist Futuristic TIVO Logo (Option 3 - Seamless Background)
-                  Center(
-                    child: SizedBox(
-                      width: 140,
-                      height: 140,
-                      child: Image.asset(
-                        'assets/images/tivo_logo.png',
-                        width: 140,
-                        height: 140,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
+                  // Minimalist Futuristic TIVO Logo (Option 3 - 100% Vector & Transparent)
+                  const Center(
+                    child: TivoLogo(size: 130, showGlow: true),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 18),
 
                   // Brand Title
                   ShaderMask(
