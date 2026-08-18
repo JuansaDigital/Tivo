@@ -4,8 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/tivo_theme.dart';
 import 'features/auth/presentation/welcome_screen.dart';
 
-void main() {
+import 'core/services/storage_service.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await StorageService.init();
 
   // Configurar barra de estado transparente y estilo oscuro
   SystemChrome.setSystemUIOverlayStyle(

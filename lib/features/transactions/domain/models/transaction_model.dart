@@ -87,4 +87,43 @@ class TransactionModel {
       tag: tag ?? this.tag,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'amount': amount,
+      'type': type.name,
+      'category': category.name,
+      'necessity': necessity.name,
+      'accountName': accountName,
+      'date': date.toIso8601String(),
+      'note': note,
+      'tag': tag,
+    };
+  }
+
+  factory TransactionModel.fromMap(Map<String, dynamic> map) {
+    return TransactionModel(
+      id: map['id'] ?? '',
+      title: map['title'] ?? '',
+      amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
+      type: TransactionType.values.firstWhere(
+        (e) => e.name == map['type'],
+        orElse: () => TransactionType.expense,
+      ),
+      category: ExpenseCategory.values.firstWhere(
+        (e) => e.name == map['category'],
+        orElse: () => ExpenseCategory.other,
+      ),
+      necessity: NecessityType.values.firstWhere(
+        (e) => e.name == map['necessity'],
+        orElse: () => NecessityType.need,
+      ),
+      accountName: map['accountName'] ?? '',
+      date: map['date'] != null ? DateTime.parse(map['date']) : DateTime.now(),
+      note: map['note'],
+      tag: map['tag'],
+    );
+  }
 }

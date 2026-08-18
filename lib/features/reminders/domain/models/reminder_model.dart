@@ -73,4 +73,37 @@ class ReminderModel {
       interestRateEA: interestRateEA ?? this.interestRateEA,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'pillar': pillar.name,
+      'estimatedAmount': estimatedAmount,
+      'dueDate': dueDate.toIso8601String(),
+      'isPaid': isPaid,
+      'defaultAccountId': defaultAccountId,
+      'notes': notes,
+      'minimumPayment': minimumPayment,
+      'interestRateEA': interestRateEA,
+    };
+  }
+
+  factory ReminderModel.fromMap(Map<String, dynamic> map) {
+    return ReminderModel(
+      id: map['id'] ?? '',
+      title: map['title'] ?? '',
+      pillar: ReminderPillar.values.firstWhere(
+        (e) => e.name == map['pillar'],
+        orElse: () => ReminderPillar.fixedUtility,
+      ),
+      estimatedAmount: (map['estimatedAmount'] as num?)?.toDouble() ?? 0.0,
+      dueDate: map['dueDate'] != null ? DateTime.parse(map['dueDate']) : DateTime.now(),
+      isPaid: map['isPaid'] ?? false,
+      defaultAccountId: map['defaultAccountId'] ?? '',
+      notes: map['notes'],
+      minimumPayment: (map['minimumPayment'] as num?)?.toDouble(),
+      interestRateEA: (map['interestRateEA'] as num?)?.toDouble(),
+    );
+  }
 }

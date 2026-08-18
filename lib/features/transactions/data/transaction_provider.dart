@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import '../../../core/services/storage_service.dart';
 import '../domain/models/transaction_model.dart';
 
 final transactionListProvider =
@@ -8,9 +9,9 @@ final transactionListProvider =
 });
 
 class TransactionNotifier extends StateNotifier<List<TransactionModel>> {
-  TransactionNotifier() : super(_initialTransactions);
+  TransactionNotifier() : super(StorageService.loadTransactions());
 
-  static final List<TransactionModel> _initialTransactions = [
+  static List<TransactionModel> get initialTransactions => [
     TransactionModel(
       id: const Uuid().v4(),
       title: 'Pago Nómina Quincenal',
@@ -75,17 +76,26 @@ class TransactionNotifier extends StateNotifier<List<TransactionModel>> {
 
   void addTransaction(TransactionModel transaction) {
     state = [transaction, ...state];
+    StorageService.saveTransactions(state);
   }
 
   void updateTransaction(TransactionModel updatedTransaction) {
     state = state.map((t) => t.id == updatedTransaction.id ? updatedTransaction : t).toList();
+    StorageService.saveTransactions(state);
   }
 
   void deleteTransaction(String id) {
     state = state.where((item) => item.id != id).toList();
+    StorageService.saveTransactions(state);
   }
 
   void reset() {
     state = [];
+    StorageService.saveTransactions(state);
+  }
+
+  void loadDemoData() {
+    state = initialTransactions;
+    StorageService.saveTransactions(state);
   }
 }

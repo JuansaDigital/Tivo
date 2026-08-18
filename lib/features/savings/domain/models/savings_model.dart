@@ -33,4 +33,26 @@ class SavingsGoalModel {
       color: color ?? this.color,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'targetAmount': targetAmount,
+      'currentAmount': currentAmount,
+      'monthlyContribution': monthlyContribution,
+      'color': color.value,
+    };
+  }
+
+  factory SavingsGoalModel.fromMap(Map<String, dynamic> map) {
+    return SavingsGoalModel(
+      id: map['id'] ?? '',
+      title: map['title'] ?? '',
+      targetAmount: (map['targetAmount'] as num?)?.toDouble() ?? 0.0,
+      currentAmount: (map['currentAmount'] as num?)?.toDouble() ?? 0.0,
+      monthlyContribution: (map['monthlyContribution'] as num?)?.toDouble() ?? 0.0,
+      color: map['color'] != null ? Color(map['color'] as int) : const Color(0xFF10B981),
+    );
+  }
 }

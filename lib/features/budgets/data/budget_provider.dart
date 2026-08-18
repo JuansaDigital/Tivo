@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/tivo_colors.dart';
+import '../../../core/services/storage_service.dart';
 import '../domain/models/budget_model.dart';
 
 final budgetListProvider = StateNotifierProvider<BudgetNotifier, List<BudgetModel>>((ref) {
@@ -7,9 +8,9 @@ final budgetListProvider = StateNotifierProvider<BudgetNotifier, List<BudgetMode
 });
 
 class BudgetNotifier extends StateNotifier<List<BudgetModel>> {
-  BudgetNotifier() : super(_initialBudgets);
+  BudgetNotifier() : super(StorageService.loadBudgets());
 
-  static final List<BudgetModel> _initialBudgets = [
+  static List<BudgetModel> get initialBudgets => [
     BudgetModel(
       id: 'budget_1',
       categoryName: 'Alimentación & Mercado',
@@ -42,17 +43,26 @@ class BudgetNotifier extends StateNotifier<List<BudgetModel>> {
 
   void addBudget(BudgetModel budget) {
     state = [...state, budget];
+    StorageService.saveBudgets(state);
   }
 
   void updateBudget(BudgetModel updatedBudget) {
     state = state.map((b) => b.id == updatedBudget.id ? updatedBudget : b).toList();
+    StorageService.saveBudgets(state);
   }
 
   void deleteBudget(String id) {
     state = state.where((b) => b.id != id).toList();
+    StorageService.saveBudgets(state);
   }
 
   void reset() {
     state = [];
+    StorageService.saveBudgets(state);
+  }
+
+  void loadDemoData() {
+    state = initialBudgets;
+    StorageService.saveBudgets(state);
   }
 }

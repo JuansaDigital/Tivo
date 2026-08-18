@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import '../../../core/services/storage_service.dart';
 import '../domain/models/account_model.dart';
 
 final accountListProvider = StateNotifierProvider<AccountNotifier, List<AccountModel>>((ref) {
@@ -7,9 +8,9 @@ final accountListProvider = StateNotifierProvider<AccountNotifier, List<AccountM
 });
 
 class AccountNotifier extends StateNotifier<List<AccountModel>> {
-  AccountNotifier() : super(_initialAccounts);
+  AccountNotifier() : super(StorageService.loadAccounts());
 
-  static final List<AccountModel> _initialAccounts = [
+  static List<AccountModel> get initialAccounts => [
     AccountModel(
       id: const Uuid().v4(),
       name: 'Bancolombia Principal',
@@ -51,18 +52,27 @@ class AccountNotifier extends StateNotifier<List<AccountModel>> {
 
   void addAccount(AccountModel account) {
     state = [...state, account];
+    StorageService.saveAccounts(state);
   }
 
   void updateAccount(AccountModel updatedAccount) {
     state = state.map((acc) => acc.id == updatedAccount.id ? updatedAccount : acc).toList();
+    StorageService.saveAccounts(state);
   }
 
   void deleteAccount(String id) {
     state = state.where((acc) => acc.id != id).toList();
+    StorageService.saveAccounts(state);
   }
 
   void reset() {
     state = [];
+    StorageService.saveAccounts(state);
+  }
+
+  void loadDemoData() {
+    state = initialAccounts;
+    StorageService.saveAccounts(state);
   }
 
   void updateBalance(String id, double newBalance) {
@@ -83,5 +93,6 @@ class AccountNotifier extends StateNotifier<List<AccountModel>> {
       }
       return acc;
     }).toList();
+    StorageService.saveAccounts(state);
   }
 }

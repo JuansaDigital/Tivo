@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import '../../../core/services/storage_service.dart';
 import '../domain/models/reminder_model.dart';
 import '../domain/models/tax_shield_model.dart';
 
@@ -9,9 +10,9 @@ final reminderListProvider =
 });
 
 class ReminderNotifier extends StateNotifier<List<ReminderModel>> {
-  ReminderNotifier() : super(_initialReminders);
+  ReminderNotifier() : super(StorageService.loadReminders());
 
-  static final List<ReminderModel> _initialReminders = [
+  static List<ReminderModel> get initialReminders => [
     ReminderModel(
       id: const Uuid().v4(),
       title: 'Factura Internet Fibra Óptica (Claro)',
@@ -29,7 +30,7 @@ class ReminderNotifier extends StateNotifier<List<ReminderModel>> {
       dueDate: DateTime.now().add(const Duration(days: 4)),
       defaultAccountId: 'bancolombia_1',
       minimumPayment: 145000,
-      interestRateEA: 0.285, // 28.5% EA si no se paga total
+      interestRateEA: 0.285,
       notes: 'Paga total para evitar \$34.500 de intereses este mes',
     ),
     ReminderModel(
@@ -67,22 +68,32 @@ class ReminderNotifier extends StateNotifier<List<ReminderModel>> {
       }
       return r;
     }).toList();
+    StorageService.saveReminders(state);
   }
 
   void addReminder(ReminderModel reminder) {
     state = [...state, reminder];
+    StorageService.saveReminders(state);
   }
 
   void updateReminder(ReminderModel updatedReminder) {
     state = state.map((r) => r.id == updatedReminder.id ? updatedReminder : r).toList();
+    StorageService.saveReminders(state);
   }
 
   void deleteReminder(String id) {
     state = state.where((r) => r.id != id).toList();
+    StorageService.saveReminders(state);
   }
 
   void reset() {
     state = [];
+    StorageService.saveReminders(state);
+  }
+
+  void loadDemoData() {
+    state = initialReminders;
+    StorageService.saveReminders(state);
   }
 }
 
@@ -93,21 +104,21 @@ final taxShieldProvider = Provider<TaxShieldProfile>((ref) {
       title: 'Compras Totales con Tarjetas',
       description: 'Acumulado anual de consumos electrónicos',
       currentAmount: 28450000,
-      limitThreshold: 65800000, // ~1.400 UVT
+      limitThreshold: 65800000,
       uvtEquivalent: '1.400 UVT (\$65.8M)',
     ),
     bankDeposits: TaxMetricThreshold(
       title: 'Consignaciones Bancarias Recibidas',
       description: 'Transferencias, nómina y abonos de terceros',
       currentAmount: 39120000,
-      limitThreshold: 65800000, // ~1.400 UVT
+      limitThreshold: 65800000,
       uvtEquivalent: '1.400 UVT (\$65.8M)',
     ),
     grossAssets: TaxMetricThreshold(
       title: 'Patrimonio Bruto Total',
       description: 'Suma de saldos líquidos, vehículos y activos',
       currentAmount: 82500000,
-      limitThreshold: 211500000, // ~4.500 UVT
+      limitThreshold: 211500000,
       uvtEquivalent: '4.500 UVT (\$211.5M)',
     ),
   );

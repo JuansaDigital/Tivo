@@ -29,4 +29,24 @@ class BudgetModel {
       color: color ?? this.color,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'categoryName': categoryName,
+      'limitAmount': limitAmount,
+      'spentAmount': spentAmount,
+      'color': color.value,
+    };
+  }
+
+  factory BudgetModel.fromMap(Map<String, dynamic> map) {
+    return BudgetModel(
+      id: map['id'] ?? '',
+      categoryName: map['categoryName'] ?? '',
+      limitAmount: (map['limitAmount'] as num?)?.toDouble() ?? 0.0,
+      spentAmount: (map['spentAmount'] as num?)?.toDouble() ?? 0.0,
+      color: map['color'] != null ? Color(map['color'] as int) : const Color(0xFF38BDF8),
+    );
+  }
 }

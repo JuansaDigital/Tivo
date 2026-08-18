@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/tivo_colors.dart';
+import '../../../core/services/storage_service.dart';
 import '../domain/models/savings_model.dart';
 
 final savingsListProvider = StateNotifierProvider<SavingsNotifier, List<SavingsGoalModel>>((ref) {
@@ -7,9 +8,9 @@ final savingsListProvider = StateNotifierProvider<SavingsNotifier, List<SavingsG
 });
 
 class SavingsNotifier extends StateNotifier<List<SavingsGoalModel>> {
-  SavingsNotifier() : super(_initialGoals);
+  SavingsNotifier() : super(StorageService.loadSavings());
 
-  static final List<SavingsGoalModel> _initialGoals = [
+  static List<SavingsGoalModel> get initialGoals => [
     SavingsGoalModel(
       id: 'sav_1',
       title: 'Fondo de Emergencia (3 Meses)',
@@ -30,14 +31,17 @@ class SavingsNotifier extends StateNotifier<List<SavingsGoalModel>> {
 
   void addGoal(SavingsGoalModel goal) {
     state = [...state, goal];
+    StorageService.saveSavings(state);
   }
 
   void updateGoal(SavingsGoalModel updatedGoal) {
     state = state.map((g) => g.id == updatedGoal.id ? updatedGoal : g).toList();
+    StorageService.saveSavings(state);
   }
 
   void deleteGoal(String id) {
     state = state.where((g) => g.id != id).toList();
+    StorageService.saveSavings(state);
   }
 
   void addContribution(String id, double extraAmount) {
@@ -54,9 +58,16 @@ class SavingsNotifier extends StateNotifier<List<SavingsGoalModel>> {
       }
       return g;
     }).toList();
+    StorageService.saveSavings(state);
   }
 
   void reset() {
     state = [];
+    StorageService.saveSavings(state);
+  }
+
+  void loadDemoData() {
+    state = initialGoals;
+    StorageService.saveSavings(state);
   }
 }

@@ -477,11 +477,11 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 32),
 
-            // 4. Danger Zone Section
+            // 4. Gestión de Datos Section
             const Text(
-              'Zona de Peligro',
+              'Gestión de Datos & Almacenamiento',
               style: TextStyle(
-                color: TivoColors.statusExpenseRose,
+                color: TivoColors.textTertiary,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.0,
@@ -491,23 +491,40 @@ class SettingsScreen extends ConsumerWidget {
             GlassCard(
               padding: EdgeInsets.zero,
               borderRadius: TivoSpacing.radiusLg,
-              backgroundColor: TivoColors.statusExpenseRose.withOpacity(0.05),
-              borderGradient: LinearGradient(
-                colors: [
-                  TivoColors.statusExpenseRose.withOpacity(0.3),
-                  TivoColors.statusExpenseRose.withOpacity(0.0),
-                ],
-              ),
-              child: ListTile(
-                leading: const Icon(LucideIcons.trash2, color: TivoColors.statusExpenseRose),
-                title: const Text(
-                  'Borrar todos los datos',
-                  style: TextStyle(
-                    color: TivoColors.statusExpenseRoseLight,
-                    fontWeight: FontWeight.w600,
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(LucideIcons.sparkles, color: TivoColors.primaryIceBlue),
+                    title: const Text('Cargar Datos de Ejemplo (Demo)', style: TextStyle(color: TivoColors.textPrimary)),
+                    subtitle: const Text('Poblar la app con datos financieros de demostración', style: TextStyle(color: TivoColors.textTertiary, fontSize: 11)),
+                    onTap: () {
+                      ref.read(accountListProvider.notifier).loadDemoData();
+                      ref.read(transactionListProvider.notifier).loadDemoData();
+                      ref.read(reminderListProvider.notifier).loadDemoData();
+                      ref.read(savingsListProvider.notifier).loadDemoData();
+                      ref.read(budgetListProvider.notifier).loadDemoData();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Datos de demostración cargados con éxito.'),
+                          backgroundColor: TivoColors.statusIncomeGreen,
+                        ),
+                      );
+                    },
                   ),
-                ),
-                onTap: () => _showDeleteDataConfirmation(context, ref),
+                  const Divider(color: Colors.white10, height: 1, indent: 56),
+                  ListTile(
+                    leading: const Icon(LucideIcons.trash2, color: TivoColors.statusExpenseRose),
+                    title: const Text(
+                      'Borrar todos los datos (\$0)',
+                      style: TextStyle(
+                        color: TivoColors.statusExpenseRoseLight,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: const Text('Reiniciar la app limpia en \$0 para ingresar tus propios datos', style: TextStyle(color: TivoColors.textTertiary, fontSize: 11)),
+                    onTap: () => _showDeleteDataConfirmation(context, ref),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 40),

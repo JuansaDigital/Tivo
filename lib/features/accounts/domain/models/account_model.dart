@@ -48,4 +48,37 @@ class AccountModel {
     if (type != AccountType.creditCard || creditLimit == null || creditLimit == 0) return 0.0;
     return (balance / creditLimit!).clamp(0.0, 1.0);
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'institutionName': institutionName,
+      'type': type.name,
+      'balance': balance,
+      'creditLimit': creditLimit,
+      'cutOffDay': cutOffDay,
+      'paymentDueDay': paymentDueDay,
+      'isGMFExempt': isGMFExempt,
+      'accountNumberMasked': accountNumberMasked,
+    };
+  }
+
+  factory AccountModel.fromMap(Map<String, dynamic> map) {
+    return AccountModel(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      institutionName: map['institutionName'] ?? '',
+      type: AccountType.values.firstWhere(
+        (e) => e.name == map['type'],
+        orElse: () => AccountType.savings,
+      ),
+      balance: (map['balance'] as num?)?.toDouble() ?? 0.0,
+      creditLimit: (map['creditLimit'] as num?)?.toDouble(),
+      cutOffDay: map['cutOffDay'],
+      paymentDueDay: map['paymentDueDay'],
+      isGMFExempt: map['isGMFExempt'] ?? false,
+      accountNumberMasked: map['accountNumberMasked'] ?? '',
+    );
+  }
 }
