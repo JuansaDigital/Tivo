@@ -132,3 +132,78 @@ Al pulsar en el perfil desde el Dashboard, el usuario accederá a una pantalla d
 3. **Carga Rápida de Datos:** Botón FAB (Floating Action Button) persistente en el medio del BottomNavigationBar para añadir rápidamente un Gasto o Ingreso desde cualquier lugar.
 4. **Formularios Dinámicos (Modales):** Uso intensivo de `showModalBottomSheet` con bordes redondeados y fondos de cristal para formularios de "Añadir Transacción" o "Crear Cuenta", evitando transiciones bruscas de pantalla completa.
 5. **Micro-interacciones:** Animaciones suaves al cambiar de pestaña, tocar botones, y progreso fluido en barras y gráficas.
+
+---
+
+## ☁️ 6. Hoja de Ruta Futura: Autenticación Cloud y Sincronización Multi-Usuario (Google & Apple)
+
+Guía técnica y funcional para la transición de almacenamiento local a soporte multi-usuario en la nube con inicio de sesión nativo en **Google** y **Apple**.
+
+### 🏗️ Arquitectura Propuesta
+
+```text
+[Usuario en WelcomeScreen]
+       │
+       ├──> Continuar con Google (Google Sign-In) ──┐
+       │                                           │
+       ├──> Continuar con Apple (Apple ID / FaceID)├──> Firebase Auth / Supabase Auth
+       │                                           │
+       └──> Modo Invitado / Local (Offline)        │
+                                                   ▼
+                                          Generación de UID Único
+                                                   ▼
+                                        Cloud Firestore / PostgreSQL
+                                    (Colecciones aisladas por UID:
+                                     cuentas, presupuestos, ahorros, etc.)
+```
+
+### 📋 Fases de Implementación
+
+#### 🔹 Fase 1: Creación de Proyectos y Credenciales
+1. **Google Cloud / Firebase Console:**
+   - Crear proyecto en [Firebase Console](https://console.firebase.google.com).
+   - Habilitar el proveedor **Google** en *Authentication > Sign-in method*.
+   - Registrar la app de iOS con su Bundle ID (`com.tivo.app`).
+   - Descargar el archivo de configuración `GoogleService-Info.plist`.
+2. **Apple Developer Portal:**
+   - En [developer.apple.com](https://developer.apple.com) (*Certificates, Identifiers & Profiles*):
+   - Habilitar la Capability **"Sign in with Apple"** en el App ID correspondiente.
+
+#### 🔹 Fase 2: Configuración Nativa
+1. **iOS (Xcode):**
+   - Abrir el proyecto en Xcode (`ios/Runner.xcworkspace`).
+   - En *Signing & Capabilities*, añadir **+ Capability > Sign in with Apple**.
+   - Colocar `GoogleService-Info.plist` en `ios/Runner/`.
+   - Configurar el `REVERSED_CLIENT_ID` de Google en `Info.plist` (URL Types).
+2. **Android (Futuro / Play Store):**
+   - Colocar `google-services.json` en `android/app/`.
+   - Registrar los certificados SHA-1 y SHA-256 en Firebase.
+
+#### 🔹 Fase 3: Capa de Autenticación en Flutter
+1. **Dependencias en `pubspec.yaml`:**
+   - `firebase_core`, `firebase_auth`, `google_sign_in`, `sign_in_with_apple`, `cloud_firestore`.
+2. **Estructura de Código:**
+   - `lib/features/auth/domain/models/user_model.dart`: Modelo de usuario (`uid`, `email`, `displayName`, `photoUrl`, `authProvider`).
+   - `lib/features/auth/data/auth_service.dart`: Métodos `signInWithGoogle()`, `signInWithApple()`, `signOut()`.
+   - `lib/features/auth/data/auth_provider.dart`: Estado reactivo del usuario con `ChangeNotifier`.
+
+#### 🔹 Fase 4: Integración en Interfaz (UI)
+1. **WelcomeScreen (`welcome_screen.dart`):**
+   - Botón nativo/estilizado **"Continuar con Apple"** (con soporte Face ID / Touch ID).
+   - Botón **"Continuar con Google"**.
+   - Opción secundaria de *"Continuar como invitado"* (almacenamiento local).
+2. **MainScreen & SettingsScreen:**
+   - Desplegar avatar y nombre del usuario autenticado en el Dashboard.
+   - Opción para *"Cerrar Sesión"* y *"Eliminar Cuenta"* en Configuración.
+
+#### 🔹 Fase 5: Persistencia Híbrida y Sincronización Cloud
+1. **Estructura Multi-inquilino (Multi-tenant):**
+   - Rutas en Firestore: `users/{uid}/accounts`, `users/{uid}/transactions`, `users/{uid}/budgets`, `users/{uid}/savings`, `users/{uid}/reminders`.
+2. **Sincronización:**
+   - Mantener `storage_service.dart` para respuesta inmediata y funcionamiento offline.
+   - Sincronizar automáticamente en la nube cuando se restablezca la conexión a internet.
+
+#### 🔹 Fase 6: Cumplimiento de Políticas de App Store
+- **Directriz 4.8 de Apple:** "Sign in with Apple" debe tener igual o mayor prominencia visual que cualquier otro proveedor social (Google).
+- **Eliminación de Cuenta:** Es mandatorio ofrecer un botón claro de borrado completo de cuenta y datos dentro de la app para ser aprobada en la App Store.
+

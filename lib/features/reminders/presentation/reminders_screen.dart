@@ -29,6 +29,7 @@ class RemindersScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_reminders',
         backgroundColor: TivoColors.primaryIceBlue,
         foregroundColor: const Color(0xFF070E22),
         onPressed: () {

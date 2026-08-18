@@ -301,6 +301,7 @@ class DashboardScreen extends ConsumerWidget {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 80.0),
         child: FloatingActionButton(
+          heroTag: 'fab_dashboard',
           backgroundColor: TivoColors.primaryIceBlue,
           foregroundColor: const Color(0xFF070E22),
           elevation: 6,
