@@ -58,50 +58,33 @@ class WelcomeScreen extends StatelessWidget {
                 children: [
                   const Spacer(flex: 1),
 
-                  // Animated Glowing Logo
+                  // Minimalist Futuristic TIVO Logo (Option 3)
                   Center(
                     child: Container(
-                      width: 110,
-                      height: 110,
+                      width: 120,
+                      height: 120,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            TivoColors.accentElectricCyan,
-                            TivoColors.primaryIceBlue,
-                            TivoColors.accentPurple,
-                          ],
-                        ),
                         boxShadow: [
                           BoxShadow(
                             color: TivoColors.accentElectricCyan.withOpacity(0.4),
-                            blurRadius: 30,
-                            spreadRadius: 4,
+                            blurRadius: 32,
+                            spreadRadius: 2,
                           ),
                         ],
                       ),
-                      child: Center(
-                        child: Container(
-                          width: 100,
-                          height: 100,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF070E22),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              LucideIcons.walletCards,
-                              size: 48,
-                              color: TivoColors.accentElectricCyan,
-                            ),
-                          ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(60),
+                        child: Image.asset(
+                          'assets/images/tivo_logo.png',
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
 
                   // Brand Title
                   ShaderMask(
