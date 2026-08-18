@@ -4,7 +4,6 @@ import '../../../core/constants/tivo_colors.dart';
 import '../../../core/constants/tivo_spacing.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/tivo_button.dart';
-import '../../../core/widgets/tivo_logo.dart';
 import 'lock_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -59,11 +58,52 @@ class WelcomeScreen extends StatelessWidget {
                 children: [
                   const Spacer(flex: 1),
 
-                  // Minimalist Futuristic TIVO Logo (Option 3 - 100% Vector & Transparent)
-                  const Center(
-                    child: TivoLogo(size: 130, showGlow: true),
+                  // Exact 3D TIVO Logo with Smooth Feathered Alpha Dissolve
+                  Center(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Soft Ambient Backlight Glow
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: TivoColors.accentElectricCyan.withOpacity(0.4),
+                                blurRadius: 40,
+                                spreadRadius: 6,
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Exact 3D Logo Asset Feathered seamlessly into the background
+                        ShaderMask(
+                          shaderCallback: (bounds) {
+                            return const RadialGradient(
+                              center: Alignment.center,
+                              radius: 0.50,
+                              colors: [
+                                Colors.white,
+                                Colors.white,
+                                Colors.transparent,
+                              ],
+                              stops: [0.0, 0.65, 1.0],
+                            ).createShader(bounds);
+                          },
+                          blendMode: BlendMode.dstIn,
+                          child: Image.asset(
+                            'assets/images/tivo_logo.png',
+                            width: 150,
+                            height: 150,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
 
                   // Brand Title
                   ShaderMask(
