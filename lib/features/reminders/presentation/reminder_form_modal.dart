@@ -4,6 +4,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/constants/tivo_colors.dart';
 import '../../../core/constants/tivo_spacing.dart';
+import '../../../core/utils/currency_formatter.dart';
+import '../../accounts/data/account_provider.dart';
+import '../../accounts/domain/models/account_model.dart';
 import '../data/reminders_provider.dart';
 import '../domain/models/reminder_model.dart';
 
@@ -39,6 +42,7 @@ class _ReminderFormModalState extends ConsumerState<ReminderFormModal> {
   late TextEditingController _notesController;
   late ReminderPillar _selectedPillar;
   late DateTime _selectedDate;
+  String? _selectedAccountName;
 
   @override
   void initState() {
@@ -49,6 +53,7 @@ class _ReminderFormModalState extends ConsumerState<ReminderFormModal> {
     _notesController = TextEditingController(text: r?.notes ?? '');
     _selectedPillar = r?.pillar ?? widget.initialPillar ?? ReminderPillar.fixedUtility;
     _selectedDate = r?.dueDate ?? DateTime.now().add(const Duration(days: 1));
+    _selectedAccountName = r?.defaultAccountId;
   }
 
   @override
@@ -73,13 +78,17 @@ class _ReminderFormModalState extends ConsumerState<ReminderFormModal> {
       return;
     }
 
+    final accounts = ref.read(accountListProvider);
+    final targetAccount = _selectedAccountName ??
+        (accounts.isNotEmpty ? accounts.first.name : 'Bancolombia Principal');
+
     final newReminder = ReminderModel(
       id: widget.reminderToEdit?.id ?? const Uuid().v4(),
       title: _titleController.text.trim(),
       pillar: _selectedPillar,
       estimatedAmount: amount,
       dueDate: _selectedDate,
-      defaultAccountId: widget.reminderToEdit?.defaultAccountId ?? 'bancolombia_1',
+      defaultAccountId: targetAccount,
       notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
       isPaid: widget.reminderToEdit?.isPaid ?? false,
     );
@@ -247,7 +256,78 @@ class _ReminderFormModalState extends ConsumerState<ReminderFormModal> {
                 ),
               ),
             ),
-            
+            const SizedBox(height: 16),
+
+            const Text('CUENTA SUGERIDA PARA DEBITAR', style: _labelStyle),
+            const SizedBox(height: 8),
+            Consumer(
+              builder: (context, ref, _) {
+                final accounts = ref.watch(accountListProvider);
+                if (accounts.isEmpty) {
+                  return const Text('No hay cuentas creadas', style: TextStyle(color: TivoColors.textTertiary, fontSize: 12));
+                }
+
+                _selectedAccountName ??= accounts.first.name;
+
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: accounts.map((acc) {
+                      final isSelected = _selectedAccountName == acc.name;
+                      final typeIcon = acc.type == AccountType.creditCard
+                          ? LucideIcons.creditCard
+                          : acc.type == AccountType.cash
+                              ? LucideIcons.banknote
+                              : LucideIcons.landmark;
+
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedAccountName = acc.name),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? TivoColors.primaryIceBlue.withOpacity(0.2)
+                                : Colors.white.withOpacity(0.04),
+                            borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                            border: Border.all(
+                              color: isSelected ? TivoColors.primaryIceBlue : Colors.white10,
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(typeIcon, size: 14, color: isSelected ? TivoColors.primaryIceBlue : TivoColors.textSecondary),
+                              const SizedBox(width: 6),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    acc.name,
+                                    style: TextStyle(
+                                      color: isSelected ? TivoColors.textPrimary : TivoColors.textSecondary,
+                                      fontSize: 12,
+                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Saldo: ${CurrencyFormatter.formatCompact(acc.balance)}',
+                                    style: const TextStyle(
+                                      color: TivoColors.textTertiary,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 16),
             _buildTextField(
               controller: _notesController,

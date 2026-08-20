@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/tivo_colors.dart';
 import '../../../core/constants/tivo_spacing.dart';
+import '../../../core/providers/profile_provider.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/tivo_button.dart';
+import 'auth_screen.dart';
 import 'lock_screen.dart';
+import 'onboarding_profile_screen.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: const Color(0xFF070E22),
       body: Stack(
@@ -52,11 +56,11 @@ class WelcomeScreen extends StatelessWidget {
           ),
 
           SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: Column(
                 children: [
-                  const Spacer(flex: 1),
+                  const SizedBox(height: 12),
 
                   // 3D TIVO Logo with Ambient Glow
                   Center(
@@ -159,19 +163,91 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
 
-                  const Spacer(flex: 2),
+                  const SizedBox(height: 24),
 
-                  // Login CTA Button
-                  TivoButton(
-                    label: 'Iniciar Sesión / Login',
-                    icon: LucideIcons.logIn,
-                    onPressed: () {
+                  // Google Sign-In Button
+                  GlassCard(
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    borderRadius: TivoSpacing.radiusLg,
+                    onTap: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const LockScreen()),
+                        MaterialPageRoute(builder: (_) => const AuthScreen(initialIsSignUp: false)),
                       );
                     },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Text(
+                            'G',
+                            style: TextStyle(
+                              color: Color(0xFFEA4335),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Continuar con Google',
+                          style: TextStyle(
+                            color: TivoColors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
+
+                  // Login / Register CTA Button
+                  TivoButton(
+                    label: ref.watch(userProfileProvider).isCompleted
+                        ? 'Iniciar Sesión / PIN'
+                        : 'Comenzar / Crear Perfil',
+                    icon: ref.watch(userProfileProvider).isCompleted
+                        ? LucideIcons.logIn
+                        : LucideIcons.userPlus,
+                    onPressed: () {
+                      final isProfileDone = ref.read(userProfileProvider).isCompleted;
+                      if (!isProfileDone) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const OnboardingProfileScreen()),
+                        );
+                      } else {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const LockScreen()),
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Crear cuenta con correo
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const AuthScreen(initialIsSignUp: true)),
+                      );
+                    },
+                    child: const Text(
+                      '¿No tienes cuenta? Regístrate con correo',
+                      style: TextStyle(
+                        color: TivoColors.primaryIceBlue,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
                   const Text(
                     'TIVO v2.0 • Ecosistema Financiero Seguro',
                     style: TextStyle(

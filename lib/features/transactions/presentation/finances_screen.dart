@@ -5,7 +5,6 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../core/constants/tivo_colors.dart';
 import '../../../core/constants/tivo_spacing.dart';
 import '../../../core/utils/currency_formatter.dart';
-import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../accounts/presentation/account_form_modal.dart';
 import '../../accounts/data/account_provider.dart';
@@ -40,7 +39,7 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
   void initState() {
     super.initState();
     _selectedSubTab = widget.initialSubTab;
-    _selectedDateFilter = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    _selectedDateFilter = null; // Mostrar todos los movimientos por defecto
   }
 
   @override
@@ -512,9 +511,48 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
       height: 70,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: dates.length,
+        itemCount: dates.length + 1, // +1 para el botón "Todos"
         itemBuilder: (context, index) {
-          final date = dates[index];
+          if (index == 0) {
+            final isSelected = _selectedDateFilter == null;
+            return GestureDetector(
+              onTap: () {
+                setState(() => _selectedDateFilter = null);
+              },
+              child: Container(
+                width: 58,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? TivoColors.primaryIceBlue : Colors.white.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                  border: Border.all(
+                    color: isSelected ? TivoColors.primaryIceBlue : Colors.transparent,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      LucideIcons.layers,
+                      size: 16,
+                      color: isSelected ? const Color(0xFF070E22) : TivoColors.textSecondary,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Todos',
+                      style: TextStyle(
+                        color: isSelected ? const Color(0xFF070E22) : TivoColors.textPrimary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final date = dates[index - 1];
           final isSelected = _selectedDateFilter != null && _selectedDateFilter!.isAtSameMomentAs(date);
           final isToday = date.isAtSameMomentAs(today);
 
@@ -1011,18 +1049,145 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
 
   Widget _buildCalendarTab() {
     final transactions = ref.watch(transactionListProvider);
+
+    // Filtrar movimientos del día seleccionado usando isSameDay
     final selectedDayTransactions = transactions.where((t) {
       if (_selectedCalendarDate == null) return false;
-      return t.date.year == _selectedCalendarDate!.year &&
-             t.date.month == _selectedCalendarDate!.month &&
-             t.date.day == _selectedCalendarDate!.day;
+      return isSameDay(t.date, _selectedCalendarDate);
     }).toList();
+
+    // Calcular estadísticas del mes enfocado
+    final monthTransactions = transactions.where((t) {
+      return t.date.year == _focusedCalendarDate.year && t.date.month == _focusedCalendarDate.month;
+    }).toList();
+
+    double monthIncome = 0;
+    double monthExpense = 0;
+    for (final t in monthTransactions) {
+      if (t.type == TransactionType.income) {
+        monthIncome += t.amount;
+      } else {
+        monthExpense += t.amount;
+      }
+    }
+    final monthNet = monthIncome - monthExpense;
+
+    // Calcular estadísticas del día seleccionado
+    double dayIncome = 0;
+    double dayExpense = 0;
+    for (final t in selectedDayTransactions) {
+      if (t.type == TransactionType.income) {
+        dayIncome += t.amount;
+      } else {
+        dayExpense += t.amount;
+      }
+    }
+    final dayNet = dayIncome - dayExpense;
+
+    const months = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    final currentMonthName = months[_focusedCalendarDate.month - 1];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Tarjeta Resumen Mensual
         GlassCard(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
+          borderRadius: TivoSpacing.radiusLg,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(LucideIcons.calendarDays, size: 16, color: TivoColors.primaryIceBlue),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Resumen de $currentMonthName ${_focusedCalendarDate.year}',
+                        style: const TextStyle(color: TivoColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: monthNet >= 0
+                          ? TivoColors.statusIncomeGreen.withOpacity(0.15)
+                          : TivoColors.statusExpenseRose.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(TivoSpacing.radiusPill),
+                    ),
+                    child: Text(
+                      'Neto: ${CurrencyFormatter.format(monthNet, showSign: true)}',
+                      style: TextStyle(
+                        color: monthNet >= 0 ? TivoColors.statusIncomeGreenLight : TivoColors.statusExpenseRoseLight,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                        border: Border.all(color: TivoColors.statusIncomeGreen.withOpacity(0.25)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Ingresos del Mes', style: TextStyle(color: TivoColors.textTertiary, fontSize: 10)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '+${CurrencyFormatter.format(monthIncome)}',
+                            style: const TextStyle(color: TivoColors.statusIncomeGreenLight, fontSize: 14, fontWeight: FontWeight.w800),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                        border: Border.all(color: TivoColors.statusExpenseRose.withOpacity(0.25)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Gastos del Mes', style: TextStyle(color: TivoColors.textTertiary, fontSize: 10)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '-${CurrencyFormatter.format(monthExpense)}',
+                            style: const TextStyle(color: TivoColors.statusExpenseRoseLight, fontSize: 14, fontWeight: FontWeight.w800),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Calendario Interactivo
+        GlassCard(
+          padding: const EdgeInsets.all(16),
           borderRadius: TivoSpacing.radiusLg,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1036,7 +1201,7 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: const [
@@ -1044,7 +1209,7 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
                   _CalendarLegend(color: TivoColors.statusExpenseRose, label: 'Gastos'),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
               TableCalendar(
                 firstDay: DateTime.utc(2020, 1, 1),
                 lastDay: DateTime.utc(2030, 12, 31),
@@ -1057,7 +1222,9 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
                   });
                 },
                 onPageChanged: (focusedDay) {
-                  _focusedCalendarDate = focusedDay;
+                  setState(() {
+                    _focusedCalendarDate = focusedDay;
+                  });
                 },
                 calendarStyle: CalendarStyle(
                   outsideDaysVisible: false,
@@ -1069,15 +1236,16 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
                   ),
                   selectedTextStyle: const TextStyle(color: Color(0xFF070E22), fontWeight: FontWeight.bold),
                   todayDecoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withOpacity(0.12),
                     shape: BoxShape.circle,
+                    border: Border.all(color: TivoColors.primaryIceBlue.withOpacity(0.5)),
                   ),
                   todayTextStyle: const TextStyle(color: TivoColors.textPrimary, fontWeight: FontWeight.bold),
                 ),
                 headerStyle: const HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
-                  titleTextStyle: TextStyle(color: TivoColors.primaryIceBlue, fontSize: 16, fontWeight: FontWeight.w600),
+                  titleTextStyle: TextStyle(color: TivoColors.primaryIceBlue, fontSize: 16, fontWeight: FontWeight.w700),
                   leftChevronIcon: Icon(LucideIcons.chevronLeft, color: TivoColors.textSecondary),
                   rightChevronIcon: Icon(LucideIcons.chevronRight, color: TivoColors.textSecondary),
                 ),
@@ -1099,9 +1267,9 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (hasIncome)
-                            Container(width: 4, height: 4, decoration: const BoxDecoration(color: TivoColors.statusIncomeGreen, shape: BoxShape.circle)),
+                            Container(width: 5, height: 5, decoration: const BoxDecoration(color: TivoColors.statusIncomeGreen, shape: BoxShape.circle)),
                           if (hasExpense)
-                            Container(width: 4, height: 4, margin: const EdgeInsets.only(left: 2), decoration: const BoxDecoration(color: TivoColors.statusExpenseRose, shape: BoxShape.circle)),
+                            Container(width: 5, height: 5, margin: const EdgeInsets.only(left: 3), decoration: const BoxDecoration(color: TivoColors.statusExpenseRose, shape: BoxShape.circle)),
                         ],
                       ),
                     );
@@ -1111,28 +1279,218 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
+
+        // Detalle del Día Seleccionado
         if (_selectedCalendarDate != null) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Movimientos del día ${DateFormatter.formatRelative(_selectedCalendarDate!).split(" ").last}',
-                style: const TextStyle(color: TivoColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
-              ),
-              IconButton(
-                icon: const Icon(LucideIcons.plusCircle, color: TivoColors.primaryIceBlue),
-                onPressed: () {
-                  // Muestra el form indicando que el default date sea este
-                  AddTransactionModal.show(context);
-                },
-              ),
-            ],
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            borderRadius: TivoSpacing.radiusLg,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _formatCalendarHeaderDate(_selectedCalendarDate!),
+                          style: const TextStyle(color: TivoColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${selectedDayTransactions.length} movimiento${selectedDayTransactions.length == 1 ? '' : 's'}',
+                          style: const TextStyle(color: TivoColors.textTertiary, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: TivoColors.primaryIceBlue.withOpacity(0.18),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: TivoColors.primaryIceBlue),
+                        ),
+                        child: const Icon(LucideIcons.plus, size: 16, color: TivoColors.primaryIceBlue),
+                      ),
+                      onPressed: () {
+                        AddTransactionModal.show(context, initialDate: _selectedCalendarDate);
+                      },
+                    ),
+                  ],
+                ),
+                if (selectedDayTransactions.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      if (dayIncome > 0)
+                        Expanded(
+                          child: Text(
+                            'Ingresos: +${CurrencyFormatter.format(dayIncome)}',
+                            style: const TextStyle(color: TivoColors.statusIncomeGreenLight, fontSize: 12, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      if (dayExpense > 0)
+                        Expanded(
+                          child: Text(
+                            'Gastos: -${CurrencyFormatter.format(dayExpense)}',
+                            style: const TextStyle(color: TivoColors.statusExpenseRoseLight, fontSize: 12, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      if (dayIncome == 0 && dayExpense == 0)
+                        Text(
+                          'Balance neto: ${CurrencyFormatter.format(dayNet, showSign: true)}',
+                          style: const TextStyle(color: TivoColors.textSecondary, fontSize: 12),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
           const SizedBox(height: 12),
-          _buildTransactionsList(selectedDayTransactions),
+          _buildCalendarDayTransactionsList(selectedDayTransactions, _selectedCalendarDate!),
         ],
       ],
+    );
+  }
+
+  String _formatCalendarHeaderDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(date.year, date.month, date.day);
+    const months = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    final monthName = months[date.month - 1];
+
+    if (target.isAtSameMomentAs(today)) {
+      return 'Hoy (${date.day} de $monthName)';
+    } else if (target.isAtSameMomentAs(today.subtract(const Duration(days: 1)))) {
+      return 'Ayer (${date.day} de $monthName)';
+    } else if (target.isAtSameMomentAs(today.add(const Duration(days: 1)))) {
+      return 'Mañana (${date.day} de $monthName)';
+    } else {
+      return '${date.day} de $monthName, ${date.year}';
+    }
+  }
+
+  Widget _buildCalendarDayTransactionsList(List<TransactionModel> dayTransactions, DateTime date) {
+    if (dayTransactions.isEmpty) {
+      return GlassCard(
+        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+        borderRadius: TivoSpacing.radiusMd,
+        child: Column(
+          children: [
+            Icon(LucideIcons.calendarX2, size: 36, color: Colors.white.withOpacity(0.2)),
+            const SizedBox(height: 10),
+            const Text(
+              'No hay movimientos para este día',
+              style: TextStyle(color: TivoColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 14),
+            ElevatedButton.icon(
+              onPressed: () {
+                AddTransactionModal.show(context, initialDate: date);
+              },
+              icon: const Icon(LucideIcons.plus, size: 16),
+              label: const Text('Registrar Movimiento', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: TivoColors.primaryIceBlue,
+                foregroundColor: const Color(0xFF070E22),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(TivoSpacing.radiusPill)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: dayTransactions.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final t = dayTransactions[index];
+        final isIncome = t.type == TransactionType.income;
+
+        return Dismissible(
+          key: Key('cal_${t.id}'),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            decoration: BoxDecoration(
+              color: TivoColors.statusExpenseRose,
+              borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+            ),
+            child: const Icon(LucideIcons.trash2, color: Colors.white),
+          ),
+          onDismissed: (_) {
+            ref.read(transactionListProvider.notifier).deleteTransaction(t.id);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Movimiento "${t.title}" eliminado'),
+                backgroundColor: TivoColors.statusExpenseRose,
+              ),
+            );
+          },
+          child: GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            borderRadius: TivoSpacing.radiusMd,
+            onTap: () {
+              AddTransactionModal.show(context, transactionToEdit: t, initialDate: date);
+            },
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: t.category.color.withOpacity(0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(t.category.icon, size: 16, color: t.category.color),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.title,
+                        style: const TextStyle(
+                          color: TivoColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${t.category.label} • ${t.accountName}',
+                        style: const TextStyle(color: TivoColors.textTertiary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  '${isIncome ? '+' : '-'}${CurrencyFormatter.format(t.amount)}',
+                  style: TextStyle(
+                    color: isIncome ? TivoColors.statusIncomeGreenLight : TivoColors.statusExpenseRoseLight,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1154,3 +1512,4 @@ class _CalendarLegend extends StatelessWidget {
     );
   }
 }
+

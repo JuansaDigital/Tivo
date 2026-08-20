@@ -87,7 +87,10 @@ class GlassCard extends StatelessWidget {
                 gradient: backgroundGradient,
                 borderRadius: BorderRadius.circular(borderRadius),
               ),
-              child: child,
+              child: Material(
+                type: MaterialType.transparency,
+                child: child,
+              ),
             ),
           ),
         ),

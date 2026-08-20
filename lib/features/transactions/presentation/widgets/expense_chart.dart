@@ -320,7 +320,9 @@ class _ExpenseChartState extends State<ExpenseChart> {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 26,
+              interval: 1.0,
               getTitlesWidget: (value, meta) {
+                if (value % 1 != 0) return const SizedBox();
                 final index = value.toInt();
                 if (index < 0 || index >= entries.length) return const SizedBox();
                 final name = _formatCategoryLabel(entries[index].key);

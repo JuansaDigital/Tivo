@@ -6,10 +6,11 @@ import '../../../core/constants/tivo_spacing.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../savings/data/savings_provider.dart';
-import '../../savings/presentation/savings_form_modal.dart';
 import '../../savings/presentation/add_contribution_modal.dart';
+import '../../savings/presentation/savings_form_modal.dart';
 import '../data/reminders_provider.dart';
 import '../domain/models/reminder_model.dart';
+import 'pay_reminder_modal.dart';
 import 'reminder_form_modal.dart';
 
 class RemindersScreen extends ConsumerWidget {
@@ -433,13 +434,7 @@ class _ReminderCard extends ConsumerWidget {
                 if (!reminder.isPaid)
                   ElevatedButton(
                     onPressed: () {
-                      ref.read(reminderListProvider.notifier).markAsPaid(reminder.id);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Pago de "${reminder.title}" registrado.'),
-                          backgroundColor: TivoColors.statusIncomeGreen,
-                        ),
-                      );
+                      PayReminderModal.show(context, reminder: reminder);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: TivoColors.primaryIceBlue,
@@ -449,7 +444,14 @@ class _ReminderCard extends ConsumerWidget {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(TivoSpacing.radiusPill)),
                     ),
-                    child: const Text('Pagar 1-Tap', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.creditCard, size: 12),
+                        SizedBox(width: 4),
+                        Text('Pagar & Debitar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                      ],
+                    ),
                   ),
               ],
             ),

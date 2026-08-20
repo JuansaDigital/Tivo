@@ -5,6 +5,7 @@ import '../../features/transactions/domain/models/transaction_model.dart';
 import '../../features/savings/domain/models/savings_model.dart';
 import '../../features/reminders/domain/models/reminder_model.dart';
 import '../../features/budgets/domain/models/budget_model.dart';
+import '../models/user_profile_model.dart';
 
 class StorageService {
   static const String _keyAccounts = 'tivo_accounts';
@@ -13,6 +14,13 @@ class StorageService {
   static const String _keyReminders = 'tivo_reminders';
   static const String _keyBudgets = 'tivo_budgets';
   static const String _keyInitialized = 'tivo_is_initialized';
+  static const String _keyLanguage = 'tivo_language';
+  static const String _keyCurrency = 'tivo_currency';
+  static const String _keyBiometric = 'tivo_biometric_enabled';
+  static const String _keyUserPin = 'tivo_user_pin';
+  static const String _keyAutoLock = 'tivo_auto_lock_duration';
+  static const String _keyPrivacyMode = 'tivo_privacy_mode';
+  static const String _keyUserProfile = 'tivo_user_profile';
 
   static SharedPreferences? _prefs;
 
@@ -113,6 +121,71 @@ class StorageService {
     await _prefs?.setString(_keyBudgets, jsonEncode(list));
   }
 
+  // --- Preferences & Security ---
+  static String loadLanguage() {
+    return _prefs?.getString(_keyLanguage) ?? 'es';
+  }
+
+  static Future<void> saveLanguage(String lang) async {
+    await _prefs?.setString(_keyLanguage, lang);
+  }
+
+  static String loadCurrency() {
+    return _prefs?.getString(_keyCurrency) ?? 'cop';
+  }
+
+  static Future<void> saveCurrency(String curr) async {
+    await _prefs?.setString(_keyCurrency, curr);
+  }
+
+  static bool loadBiometricEnabled() {
+    return _prefs?.getBool(_keyBiometric) ?? true;
+  }
+
+  static Future<void> saveBiometricEnabled(bool enabled) async {
+    await _prefs?.setBool(_keyBiometric, enabled);
+  }
+
+  static String loadUserPin() {
+    return _prefs?.getString(_keyUserPin) ?? '1234';
+  }
+
+  static Future<void> saveUserPin(String pin) async {
+    await _prefs?.setString(_keyUserPin, pin);
+  }
+
+  static String loadAutoLockDuration() {
+    return _prefs?.getString(_keyAutoLock) ?? 'Inmediato';
+  }
+
+  static Future<void> saveAutoLockDuration(String duration) async {
+    await _prefs?.setString(_keyAutoLock, duration);
+  }
+
+  static bool loadPrivacyMode() {
+    return _prefs?.getBool(_keyPrivacyMode) ?? false;
+  }
+
+  static Future<void> savePrivacyMode(bool enabled) async {
+    await _prefs?.setBool(_keyPrivacyMode, enabled);
+  }
+
+  // --- User Profile ---
+  static UserProfileModel? loadUserProfile() {
+    final raw = _prefs?.getString(_keyUserProfile);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final Map<String, dynamic> map = jsonDecode(raw);
+      return UserProfileModel.fromMap(map);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> saveUserProfile(UserProfileModel profile) async {
+    await _prefs?.setString(_keyUserProfile, jsonEncode(profile.toMap()));
+  }
+
   // --- Clear All Data (Reset to 0) ---
   static Future<void> clearAllData() async {
     await _prefs?.remove(_keyAccounts);
@@ -120,6 +193,7 @@ class StorageService {
     await _prefs?.remove(_keySavings);
     await _prefs?.remove(_keyReminders);
     await _prefs?.remove(_keyBudgets);
+    await _prefs?.remove(_keyUserProfile);
     await markInitialized();
   }
 }

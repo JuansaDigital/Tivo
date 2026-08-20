@@ -13,6 +13,7 @@ import 'widgets/immediate_alert_banner.dart';
 import 'widgets/kpi_cards_row.dart';
 import 'widgets/recent_transactions_list.dart';
 import 'widgets/wallet_carousel.dart';
+import '../../../core/providers/profile_provider.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../accounts/presentation/account_form_modal.dart';
 
@@ -29,6 +30,8 @@ class DashboardScreen extends ConsumerWidget {
     final metrics = ref.watch(financialMetricsProvider);
     final transactions = ref.watch(transactionListProvider);
     final isPrivacy = ref.watch(privacyModeProvider);
+    final profile = ref.watch(userProfileProvider);
+    final greetingName = profile.firstName.isNotEmpty ? profile.firstName : 'Usuario';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -64,40 +67,39 @@ class DashboardScreen extends ConsumerWidget {
                           height: 44,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              colors: [TivoColors.primaryIceBlue, TivoColors.accentElectricCyan],
+                            gradient: LinearGradient(
+                              colors: profile.gradientColors,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: TivoColors.primaryIceBlue.withOpacity(0.35),
+                                color: profile.gradientColors.first.withOpacity(0.35),
                                 blurRadius: 12,
                               ),
                             ],
                           ),
-                          child: const Center(
-                            child: Text(
-                              'JS',
-                              style: TextStyle(
-                                color: Color(0xFF070E22),
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
-                              ),
+                          child: Center(
+                            child: Icon(
+                              profile.iconData,
+                              color: Colors.white,
+                              size: 22,
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text(
-                              'Hola, Juan 👋',
-                              style: TextStyle(
+                              'Hola, $greetingName 👋',
+                              style: const TextStyle(
                                 color: TivoColors.textPrimary,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
-                            Text(
+                            const Text(
                               'Control Patrimonial 360°',
                               style: TextStyle(
                                 color: TivoColors.textSecondary,

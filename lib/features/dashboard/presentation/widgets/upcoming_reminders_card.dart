@@ -6,6 +6,7 @@ import '../../../../core/constants/tivo_spacing.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../reminders/data/reminders_provider.dart';
+import '../../../reminders/presentation/pay_reminder_modal.dart';
 
 class UpcomingRemindersCard extends ConsumerWidget {
   final VoidCallback onViewAll;
@@ -103,13 +104,7 @@ class UpcomingRemindersCard extends ConsumerWidget {
               ),
               ElevatedButton(
                 onPressed: () {
-                  ref.read(reminderListProvider.notifier).markAsPaid(nextReminder.id);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Pago de "${nextReminder.title}" registrado con éxito.'),
-                      backgroundColor: TivoColors.statusIncomeGreen,
-                    ),
-                  );
+                  PayReminderModal.show(context, reminder: nextReminder);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TivoColors.primaryIceBlue,

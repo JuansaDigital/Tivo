@@ -1,21 +1,23 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/constants/tivo_colors.dart';
 import '../../core/constants/tivo_spacing.dart';
+import '../../core/providers/language_provider.dart';
 import '../dashboard/presentation/dashboard_screen.dart';
 import '../habits/presentation/tips_academy_screen.dart';
 import '../reminders/presentation/reminders_screen.dart';
 import '../transactions/presentation/finances_screen.dart';
 
-class MainNavigationShell extends StatefulWidget {
+class MainNavigationShell extends ConsumerStatefulWidget {
   const MainNavigationShell({super.key});
 
   @override
-  State<MainNavigationShell> createState() => _MainNavigationShellState();
+  ConsumerState<MainNavigationShell> createState() => _MainNavigationShellState();
 }
 
-class _MainNavigationShellState extends State<MainNavigationShell> {
+class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   int _currentIndex = 0;
 
   void _onTabSelected(int index) {
@@ -26,6 +28,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = ref.watch(stringsProvider);
     final screens = [
       DashboardScreen(onNavigateTab: _onTabSelected),
       const FinancesScreen(),
@@ -130,22 +133,22 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     children: [
                       _buildNavItem(
                         icon: LucideIcons.layoutGrid,
-                        label: 'Inicio',
+                        label: strings['nav_home'] ?? 'Inicio',
                         index: 0,
                       ),
                       _buildNavItem(
                         icon: LucideIcons.wallet,
-                        label: 'Finanzas',
+                        label: strings['nav_finances'] ?? 'Finanzas',
                         index: 1,
                       ),
                       _buildNavItem(
                         icon: LucideIcons.alarmClock,
-                        label: 'Recordatorios',
+                        label: strings['nav_reminders'] ?? 'Recordatorios',
                         index: 2,
                       ),
                       _buildNavItem(
                         icon: LucideIcons.lightbulb,
-                        label: 'Tips',
+                        label: strings['nav_tips'] ?? 'Tips',
                         index: 3,
                       ),
                     ],

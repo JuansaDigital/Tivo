@@ -15,15 +15,27 @@ import '../domain/models/transaction_model.dart';
 
 class AddTransactionModal extends ConsumerStatefulWidget {
   final TransactionModel? transactionToEdit;
+  final DateTime? initialDate;
 
-  const AddTransactionModal({super.key, this.transactionToEdit});
+  const AddTransactionModal({
+    super.key,
+    this.transactionToEdit,
+    this.initialDate,
+  });
 
-  static Future<void> show(BuildContext context, {TransactionModel? transactionToEdit}) {
+  static Future<void> show(
+    BuildContext context, {
+    TransactionModel? transactionToEdit,
+    DateTime? initialDate,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AddTransactionModal(transactionToEdit: transactionToEdit),
+      builder: (context) => AddTransactionModal(
+        transactionToEdit: transactionToEdit,
+        initialDate: initialDate,
+      ),
     );
   }
 
@@ -37,6 +49,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   late TransactionType _type;
   late ExpenseCategory _category;
   late NecessityType _necessity;
+  late DateTime _selectedDate;
   String? _selectedAccountName;
 
   @override
@@ -49,6 +62,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     _category = t?.category ?? ExpenseCategory.food;
     _necessity = t?.necessity ?? NecessityType.need;
     _selectedAccountName = t?.accountName;
+    _selectedDate = t?.date ?? widget.initialDate ?? DateTime.now();
   }
 
   @override
@@ -56,35 +70,6 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     _amountController.dispose();
     _titleController.dispose();
     super.dispose();
-  }
-
-  void _syncAccountBalance({
-    required String? accountName,
-    required double amount,
-    required TransactionType type,
-    required bool isReversion,
-  }) {
-    if (accountName == null) return;
-    final accounts = ref.read(accountListProvider);
-    final match = accounts.where((a) => a.name == accountName || '${a.institutionName} ${a.name}'.contains(accountName)).toList();
-    if (match.isEmpty) return;
-
-    final targetAccount = match.first;
-    double newBalance = targetAccount.balance;
-
-    if (type == TransactionType.expense) {
-      // Expense reduces savings/cash or increases credit card balance
-      if (targetAccount.type == AccountType.creditCard) {
-        newBalance += isReversion ? -amount : amount;
-      } else {
-        newBalance += isReversion ? amount : -amount;
-      }
-    } else if (type == TransactionType.income) {
-      // Income increases savings/cash
-      newBalance += isReversion ? -amount : amount;
-    }
-
-    ref.read(accountListProvider.notifier).updateBalance(targetAccount.id, newBalance);
   }
 
   void _save() {
@@ -104,24 +89,6 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     final accounts = ref.read(accountListProvider);
     String finalAccountName = _selectedAccountName ?? (accounts.isNotEmpty ? accounts.first.name : 'Efectivo');
 
-    if (widget.transactionToEdit != null) {
-      // Revert previous transaction impact on balance
-      _syncAccountBalance(
-        accountName: widget.transactionToEdit!.accountName,
-        amount: widget.transactionToEdit!.amount,
-        type: widget.transactionToEdit!.type,
-        isReversion: true,
-      );
-    }
-
-    // Apply new balance impact
-    _syncAccountBalance(
-      accountName: finalAccountName,
-      amount: amount,
-      type: _type,
-      isReversion: false,
-    );
-
     final newTransaction = TransactionModel(
       id: widget.transactionToEdit?.id ?? const Uuid().v4(),
       title: _titleController.text.trim(),
@@ -130,7 +97,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
       category: _category,
       necessity: _necessity,
       accountName: finalAccountName,
-      date: widget.transactionToEdit?.date ?? DateTime.now(),
+      date: _selectedDate,
     );
 
     if (widget.transactionToEdit != null) {
@@ -142,7 +109,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Movimiento "${newTransaction.title}" guardado y sincronizado.'),
+        content: Text('Movimiento "${newTransaction.title}" sincronizado con el calendario.'),
         backgroundColor: TivoColors.statusIncomeGreen,
       ),
     );
@@ -150,12 +117,6 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
 
   void _delete() {
     if (widget.transactionToEdit != null) {
-      _syncAccountBalance(
-        accountName: widget.transactionToEdit!.accountName,
-        amount: widget.transactionToEdit!.amount,
-        type: widget.transactionToEdit!.type,
-        isReversion: true,
-      );
       ref.read(transactionListProvider.notifier).deleteTransaction(widget.transactionToEdit!.id);
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -164,6 +125,22 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
           backgroundColor: TivoColors.statusExpenseRose,
         ),
       );
+    }
+  }
+
+  String _formatSelectedDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(date.year, date.month, date.day);
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    final monthName = months[date.month - 1];
+
+    if (target.isAtSameMomentAs(today)) {
+      return 'Hoy (${date.day} $monthName)';
+    } else if (target.isAtSameMomentAs(today.subtract(const Duration(days: 1)))) {
+      return 'Ayer (${date.day} $monthName)';
+    } else {
+      return '${date.day} $monthName ${date.year}';
     }
   }
 
@@ -317,6 +294,80 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                     borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
                   ),
                 ),
+              ),
+              const SizedBox(height: 16),
+
+              // Selector de Fecha Sincronizado
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Fecha del Movimiento',
+                    style: TextStyle(
+                      color: TivoColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                        builder: (context, child) {
+                          return Theme(
+                            data: ThemeData.dark().copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: TivoColors.primaryIceBlue,
+                                onPrimary: Color(0xFF070E22),
+                                surface: TivoColors.bgDeepNavy,
+                                onSurface: TivoColors.textPrimary,
+                              ),
+                              dialogBackgroundColor: TivoColors.bgDeepNavy,
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _selectedDate = DateTime(
+                            picked.year,
+                            picked.month,
+                            picked.day,
+                            _selectedDate.hour,
+                            _selectedDate.minute,
+                          );
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: TivoColors.primaryIceBlue.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(TivoSpacing.radiusPill),
+                        border: Border.all(color: TivoColors.primaryIceBlue.withOpacity(0.35)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(LucideIcons.calendar, size: 14, color: TivoColors.primaryIceBlue),
+                          const SizedBox(width: 6),
+                          Text(
+                            _formatSelectedDate(_selectedDate),
+                            style: const TextStyle(
+                              color: TivoColors.primaryIceBlue,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 

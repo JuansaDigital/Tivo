@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/tivo_colors.dart';
+import '../../../../core/providers/language_provider.dart';
 import '../../../../core/providers/security_provider.dart';
 import '../../main_layout/main_navigation_shell.dart';
 
@@ -17,40 +18,67 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   final LocalAuthentication auth = LocalAuthentication();
   String _pin = '';
   bool _isAuthenticating = false;
+  bool _isFaceId = true;
 
   @override
   void initState() {
     super.initState();
+    _checkBiometricsSupport();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final isBiometricEnabled = ref.read(biometricEnabledProvider);
+      if (isBiometricEnabled) {
+        _authenticate();
+      }
+    });
+  }
+
+  Future<void> _checkBiometricsSupport() async {
+    try {
+      final biometrics = await auth.getAvailableBiometrics();
+      if (mounted) {
+        setState(() {
+          _isFaceId = biometrics.contains(BiometricType.face);
+        });
+      }
+    } catch (_) {
+      // Ignorar fallback
+    }
   }
 
   Future<void> _authenticate() async {
     final isBiometricEnabled = ref.read(biometricEnabledProvider);
+    final strings = ref.read(stringsProvider);
+
     if (!isBiometricEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('El acceso biométrico está desactivado en Configuraciones.'),
-          backgroundColor: TivoColors.statusWarningAmber,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(strings['lock_biometric_disabled'] ?? 'El acceso biométrico está desactivado en Configuraciones.'),
+            backgroundColor: TivoColors.statusWarningAmber,
+          ),
+        );
+      }
       return;
     }
 
     try {
       setState(() => _isAuthenticating = true);
-      bool authenticated = await auth.authenticate(
-        localizedReason: 'Autentícate para acceder a tu panel de TIVO',
+      final bool authenticated = await auth.authenticate(
+        localizedReason: strings['lock_biometric_reason'] ?? 'Autentícate para acceder a tu panel de TIVO',
         biometricOnly: false,
       );
-      setState(() => _isAuthenticating = false);
-      if (authenticated && mounted) {
-        _unlock();
+      if (mounted) {
+        setState(() => _isAuthenticating = false);
+        if (authenticated) {
+          _unlock();
+        }
       }
     } catch (e) {
-      setState(() => _isAuthenticating = false);
       if (mounted) {
+        setState(() => _isAuthenticating = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Usa tu PIN de seguridad para ingresar'),
+          SnackBar(
+            content: Text(strings['lock_biometric_fallback'] ?? 'Usa tu PIN de seguridad para ingresar'),
             backgroundColor: TivoColors.statusWarningAmber,
           ),
         );
@@ -60,6 +88,8 @@ class _LockScreenState extends ConsumerState<LockScreen> {
 
   void _onKeypadTap(String value) {
     final correctPin = ref.read(userPinProvider);
+    final strings = ref.read(stringsProvider);
+
     if (_pin.length < 4) {
       setState(() => _pin += value);
       if (_pin.length == 4) {
@@ -67,10 +97,10 @@ class _LockScreenState extends ConsumerState<LockScreen> {
           _unlock();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('PIN incorrecto.'),
+            SnackBar(
+              content: Text(strings['lock_pin_wrong'] ?? 'PIN incorrecto.'),
               backgroundColor: TivoColors.statusExpenseRose,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
           setState(() => _pin = '');
@@ -94,6 +124,9 @@ class _LockScreenState extends ConsumerState<LockScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = ref.watch(stringsProvider);
+    final userPin = ref.watch(userPinProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFF070E22),
       appBar: AppBar(
@@ -101,7 +134,11 @@ class _LockScreenState extends ConsumerState<LockScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft, color: TivoColors.textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          },
         ),
       ),
       body: SafeArea(
@@ -123,18 +160,18 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Ingresa tu PIN de Seguridad',
-              style: TextStyle(
+            Text(
+              strings['lock_title'] ?? 'Ingresa tu PIN de Seguridad',
+              style: const TextStyle(
                 color: TivoColors.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'PIN predeterminado: 1234',
-              style: TextStyle(
+            Text(
+              '${strings['lock_subtitle'] ?? 'PIN predeterminado:'} $userPin',
+              style: const TextStyle(
                 color: TivoColors.textTertiary,
                 fontSize: 13,
               ),
@@ -170,7 +207,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               }),
             ),
             const Spacer(),
-            _buildKeypad(),
+            _buildKeypad(strings),
             const SizedBox(height: 32),
           ],
         ),
@@ -178,7 +215,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     );
   }
 
-  Widget _buildKeypad() {
+  Widget _buildKeypad(Map<String, String> strings) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 48),
       child: Column(
@@ -208,15 +245,15 @@ class _LockScreenState extends ConsumerState<LockScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildIconButton(
-                LucideIcons.scanFace,
+                _isFaceId ? LucideIcons.scanFace : LucideIcons.fingerprint,
                 _isAuthenticating ? null : _authenticate,
-                tooltip: 'Face ID / Huella',
+                tooltip: strings['lock_biometric_btn'] ?? 'Face ID / Huella',
               ),
               _buildKey('0'),
               _buildIconButton(
                 LucideIcons.delete,
                 _onDeleteTap,
-                tooltip: 'Borrar',
+                tooltip: strings['lock_delete_btn'] ?? 'Borrar',
               ),
             ],
           ),
@@ -267,3 +304,4 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     );
   }
 }
+

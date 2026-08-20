@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/tivo_colors.dart';
 import '../../../../core/constants/tivo_spacing.dart';
+import '../../../../core/providers/language_provider.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../transactions/data/transaction_provider.dart';
@@ -21,6 +22,8 @@ class _CashflowChartState extends ConsumerState<CashflowChart> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = ref.watch(stringsProvider);
+    final currentLang = ref.watch(languageProvider);
     final transactions = ref.watch(transactionListProvider);
 
     // Generar los últimos 7 días
@@ -78,27 +81,27 @@ class _CashflowChartState extends ConsumerState<CashflowChart> {
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
-                    'Flujo de Caja Real',
-                    style: TextStyle(
+                    strings['cashflow_title'] ?? 'Flujo de Caja Real',
+                    style: const TextStyle(
                       color: TivoColors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    'Últimos 7 días sincronizados',
-                    style: TextStyle(color: TivoColors.textTertiary, fontSize: 11),
+                    strings['cashflow_subtitle'] ?? 'Últimos 7 días sincronizados',
+                    style: const TextStyle(color: TivoColors.textTertiary, fontSize: 11),
                   ),
                 ],
               ),
               Row(
-                children: const [
-                  _LegendItem(label: 'Ingresos', color: TivoColors.statusIncomeGreen),
-                  SizedBox(width: 10),
-                  _LegendItem(label: 'Gastos', color: TivoColors.statusExpenseRose),
+                children: [
+                  _LegendItem(label: strings['income'] ?? 'Ingresos', color: TivoColors.statusIncomeGreen),
+                  const SizedBox(width: 10),
+                  _LegendItem(label: strings['expense'] ?? 'Gastos', color: TivoColors.statusExpenseRose),
                 ],
               ),
             ],
@@ -140,7 +143,7 @@ class _CashflowChartState extends ConsumerState<CashflowChart> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          isToday ? 'Hoy' : _shortDayName(d.weekday),
+                          isToday ? (strings['today'] ?? 'Hoy') : _shortDayName(d.weekday, currentLang),
                           style: TextStyle(
                             color: isSelected ? const Color(0xFF070E22) : TivoColors.textSecondary,
                             fontSize: 10,
@@ -177,7 +180,9 @@ class _CashflowChartState extends ConsumerState<CashflowChart> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${_fullDayName(selectedDate.weekday)}, ${selectedDate.day} de ${_monthName(selectedDate.month)}',
+                  currentLang == AppLanguage.en
+                      ? '${_fullDayName(selectedDate.weekday, currentLang)}, ${_monthName(selectedDate.month, currentLang)} ${selectedDate.day}'
+                      : '${_fullDayName(selectedDate.weekday, currentLang)}, ${selectedDate.day} de ${_monthName(selectedDate.month, currentLang)}',
                   style: const TextStyle(color: TivoColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
                 ),
                 Row(
@@ -205,12 +210,12 @@ class _CashflowChartState extends ConsumerState<CashflowChart> {
               alignment: Alignment.center,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(LucideIcons.barChart2, size: 28, color: TivoColors.textTertiary),
-                  SizedBox(height: 6),
+                children: [
+                  const Icon(LucideIcons.barChart2, size: 28, color: TivoColors.textTertiary),
+                  const SizedBox(height: 6),
                   Text(
-                    'Sin movimientos en los últimos 7 días (\$0)',
-                    style: TextStyle(color: TivoColors.textTertiary, fontSize: 12),
+                    strings['no_movements_7d'] ?? 'Sin movimientos en los últimos 7 días (\$0)',
+                    style: const TextStyle(color: TivoColors.textTertiary, fontSize: 12),
                   ),
                 ],
               ),
@@ -229,7 +234,9 @@ class _CashflowChartState extends ConsumerState<CashflowChart> {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 20,
+                        interval: 1.0,
                         getTitlesWidget: (value, meta) {
+                          if (value % 1 != 0) return const SizedBox();
                           final idx = value.toInt();
                           if (idx < 0 || idx >= 7) return const SizedBox();
                           final d = last7Days[idx];
@@ -258,8 +265,9 @@ class _CashflowChartState extends ConsumerState<CashflowChart> {
                       getTooltipItems: (touchedSpots) {
                         return touchedSpots.map((spot) {
                           final isInc = spot.barIndex == 0;
+                          final label = isInc ? (strings['income'] ?? 'Ingreso') : (strings['expense'] ?? 'Gasto');
                           return LineTooltipItem(
-                            '${isInc ? 'Ingreso' : 'Gasto'}: ${CurrencyFormatter.formatCompact(spot.y)}',
+                            '$label: ${CurrencyFormatter.formatCompact(spot.y)}',
                             TextStyle(
                               color: isInc ? TivoColors.statusIncomeGreenLight : TivoColors.statusExpenseRoseLight,
                               fontWeight: FontWeight.bold,
@@ -341,17 +349,29 @@ class _CashflowChartState extends ConsumerState<CashflowChart> {
     );
   }
 
-  String _shortDayName(int weekday) {
+  String _shortDayName(int weekday, AppLanguage lang) {
+    if (lang == AppLanguage.en) {
+      const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return names[weekday - 1];
+    }
     const names = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
     return names[weekday - 1];
   }
 
-  String _fullDayName(int weekday) {
+  String _fullDayName(int weekday, AppLanguage lang) {
+    if (lang == AppLanguage.en) {
+      const names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      return names[weekday - 1];
+    }
     const names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
     return names[weekday - 1];
   }
 
-  String _monthName(int month) {
+  String _monthName(int month, AppLanguage lang) {
+    if (lang == AppLanguage.en) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return months[month - 1];
+    }
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     return months[month - 1];
   }
@@ -385,3 +405,4 @@ class _LegendItem extends StatelessWidget {
     );
   }
 }
+
