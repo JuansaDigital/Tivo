@@ -173,15 +173,26 @@ lib/
 
 ---
 
-## 🗺️ Hoja de Ruta (Roadmap)
+## 🗺️ Hoja de Ruta (Roadmap) y Estado Actual
 
-- [x] Arquitectura base Feature-Driven y sistema de diseño Glassmorphism.
-- [x] Dashboard con métricas clave (*Safe-to-Spend*, *Financial Runway*, *Tivo Score*).
-- [x] CRUD de transacciones, presupuestos y recordatorios.
-- [x] Calculadora de interés compuesto en Tivo Academy.
-- [ ] Conexión a base de datos persistente local / nube.
-- [ ] Exportación de reportes mensuales en PDF/CSV.
-- [ ] Widgets para pantalla de inicio (Android / iOS).
+Para ver el desglose exhaustivo de todos los módulos y tareas técnicas, consulta el **[CHECKLIST.md](CHECKLIST.md)**.
+
+- [x] Arquitectura base Feature-Driven y sistema de diseño Glassmorphism Dark Mode.
+- [x] Dashboard interactivo con métricas clave (*Safe-to-Spend*, *Financial Runway*, *Tivo Score*, Cashflow Chart dinámico).
+- [x] CRUD completo de transacciones, presupuestos por categoría, cuentas e instrumentos y calendario financiero.
+- [x] Módulo de Metas de Ahorro y aportes periódicos/extra.
+- [x] Módulo de Recordatorios con flujo de pago rápido *1-Tap Pay* (débito y registro automático).
+- [x] Tivo Academy con píldoras educativas, retos de ahorro y calculadora de interés compuesto.
+- [x] Autenticación con Google Sign-In, Firebase Auth, Email/Password y Modo Invitado offline.
+- [x] Onboarding interactivo de perfil financiero y generación automática de ingresos base.
+- [x] Suite completa de Seguridad y Privacidad (Biometría Face ID/Touch ID, PIN dinámico, Modo Privacidad y Auto-bloqueo).
+- [x] Sistema multi-moneda ($ COP, $ USD, € EUR) y soporte bilingüe reactivo (Español / Inglés).
+- [x] Persistencia local reactiva con `SharedPreferences` y arquitectura preparada para Cloud Firestore.
+- [x] Suite de pruebas automatizadas (11/11 tests pasando en unit y widget tests).
+- [ ] Sincronización en tiempo real con Cloud Firestore multi-tenant.
+- [ ] Exportación de reportes mensuales en PDF y CSV.
+- [ ] Notificaciones push locales de recordatorios y fechas de corte.
+- [ ] Widgets interactivos para pantalla de inicio (Android / iOS).
 
 ---
 
