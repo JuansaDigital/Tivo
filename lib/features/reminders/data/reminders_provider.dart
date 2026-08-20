@@ -18,10 +18,7 @@ class ReminderNotifier extends StateNotifier<List<ReminderModel>> {
   ReminderNotifier(this._ref) : super(_getInitial());
 
   static List<ReminderModel> _getInitial() {
-    final stored = StorageService.loadReminders();
-    if (stored.isNotEmpty) return stored;
-    StorageService.saveReminders(initialReminders);
-    return initialReminders;
+    return StorageService.loadReminders();
   }
 
   static List<ReminderModel> get initialReminders => [

@@ -5,6 +5,7 @@ import '../../../core/constants/tivo_colors.dart';
 import '../../../core/constants/tivo_spacing.dart';
 import '../../../core/models/user_profile_model.dart';
 import '../../../core/providers/profile_provider.dart';
+import '../../../core/providers/security_provider.dart';
 import '../../../core/widgets/tivo_button.dart';
 import '../../main_layout/main_navigation_shell.dart';
 
@@ -19,6 +20,8 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _emailController;
+  late TextEditingController _pinController;
+  late TextEditingController _confirmPinController;
   String _selectedAvatarId = 'wallet';
   int _selectedColorIndex = 0;
 
@@ -26,8 +29,11 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
   void initState() {
     super.initState();
     final profile = ref.read(userProfileProvider);
+    final storedPin = ref.read(userPinProvider);
     _nameController = TextEditingController(text: profile.name);
     _emailController = TextEditingController(text: profile.email);
+    _pinController = TextEditingController(text: storedPin == '1234' ? '' : storedPin);
+    _confirmPinController = TextEditingController(text: storedPin == '1234' ? '' : storedPin);
     _selectedAvatarId = profile.avatarIconId;
     _selectedColorIndex = profile.avatarColorIndex;
   }
@@ -36,11 +42,16 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _pinController.dispose();
+    _confirmPinController.dispose();
     super.dispose();
   }
 
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
+      if (_pinController.text.trim().isNotEmpty) {
+        ref.read(userPinProvider.notifier).updatePin(_pinController.text.trim());
+      }
       ref.read(userProfileProvider.notifier).completeProfile(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
@@ -359,6 +370,96 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
                         hintText: 'Ej: usuario@tivo.app',
                         hintStyle: const TextStyle(color: TivoColors.textTertiary),
                         prefixIcon: const Icon(LucideIcons.mail, color: TivoColors.textTertiary, size: 18),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                          borderSide: BorderSide(color: currentGradient.first, width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Campo de PIN de Seguridad
+                    const Text(
+                      'PIN DE SEGURIDAD (4 DÍGITOS)',
+                      style: TextStyle(
+                        color: TivoColors.textTertiary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _pinController,
+                      obscureText: true,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      style: const TextStyle(color: TivoColors.textPrimary, fontSize: 15, letterSpacing: 4),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Ingresa tu PIN de 4 dígitos';
+                        }
+                        if (value.trim().length != 4 || int.tryParse(value.trim()) == null) {
+                          return 'El PIN debe ser de exactamente 4 números';
+                        }
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        counterText: '',
+                        hintText: '••••',
+                        hintStyle: const TextStyle(color: TivoColors.textTertiary, letterSpacing: 4),
+                        prefixIcon: const Icon(LucideIcons.keyRound, color: TivoColors.textTertiary, size: 18),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                          borderSide: BorderSide(color: currentGradient.first, width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Confirmar PIN
+                    const Text(
+                      'CONFIRMAR PIN (4 DÍGITOS)',
+                      style: TextStyle(
+                        color: TivoColors.textTertiary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _confirmPinController,
+                      obscureText: true,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      style: const TextStyle(color: TivoColors.textPrimary, fontSize: 15, letterSpacing: 4),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Confirma tu PIN';
+                        }
+                        if (value.trim() != _pinController.text.trim()) {
+                          return 'Los PINs no coinciden';
+                        }
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        counterText: '',
+                        hintText: '••••',
+                        hintStyle: const TextStyle(color: TivoColors.textTertiary, letterSpacing: 4),
+                        prefixIcon: const Icon(LucideIcons.shieldCheck, color: TivoColors.textTertiary, size: 18),
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.05),
                         border: OutlineInputBorder(

@@ -11,6 +11,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/profile_provider.dart';
 import '../../../core/services/auth_service.dart';
 import '../../accounts/data/account_provider.dart';
+import '../../auth/presentation/auth_screen.dart';
 import '../../auth/presentation/welcome_screen.dart';
 import '../../budgets/data/budget_provider.dart';
 import '../../dashboard/data/metrics_provider.dart';
@@ -317,6 +318,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onPressed: () async {
                 Navigator.pop(context);
                 await ref.read(authStateProvider.notifier).deleteAccount();
+                ref.read(userPinProvider.notifier).updatePin('');
+                ref.read(userProfileProvider.notifier).reset();
                 ref.read(accountListProvider.notifier).reset();
                 ref.read(transactionListProvider.notifier).reset();
                 ref.read(reminderListProvider.notifier).reset();
@@ -326,14 +329,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                 if (context.mounted) {
                   Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                    MaterialPageRoute(builder: (_) => const AuthScreen(initialIsSignUp: true)),
                     (route) => false,
                   );
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Tu cuenta y todos tus datos han sido eliminados permanentemente.'),
+                      content: Text('Tu cuenta ha sido eliminada permanentemente. Por favor crea una nueva cuenta.'),
                       backgroundColor: TivoColors.statusExpenseRose,
+                      duration: Duration(seconds: 4),
                     ),
                   );
                 }
@@ -710,25 +714,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               borderRadius: TivoSpacing.radiusLg,
               child: Column(
                 children: [
-                  ListTile(
-                    leading: const Icon(LucideIcons.sparkles, color: TivoColors.primaryIceBlue),
-                    title: Text(strings['load_demo'] ?? 'Cargar Datos de Ejemplo (Demo)', style: const TextStyle(color: TivoColors.textPrimary)),
-                    subtitle: Text(strings['load_demo_desc'] ?? 'Poblar la app con datos financieros de demostración', style: const TextStyle(color: TivoColors.textTertiary, fontSize: 11)),
-                    onTap: () {
-                      ref.read(accountListProvider.notifier).loadDemoData();
-                      ref.read(transactionListProvider.notifier).loadDemoData();
-                      ref.read(reminderListProvider.notifier).loadDemoData();
-                      ref.read(savingsListProvider.notifier).loadDemoData();
-                      ref.read(budgetListProvider.notifier).loadDemoData();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(strings['demo_loaded_msg'] ?? 'Datos de demostración cargados con éxito.'),
-                          backgroundColor: TivoColors.statusIncomeGreen,
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(color: Colors.white10, height: 1, indent: 56),
                   ListTile(
                     leading: const Icon(LucideIcons.trash2, color: TivoColors.statusExpenseRose),
                     title: Text(

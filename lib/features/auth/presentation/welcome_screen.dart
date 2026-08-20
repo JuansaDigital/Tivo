@@ -3,12 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/tivo_colors.dart';
 import '../../../core/constants/tivo_spacing.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/profile_provider.dart';
+import '../../../core/providers/security_provider.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/tivo_button.dart';
 import 'auth_screen.dart';
 import 'lock_screen.dart';
-import 'onboarding_profile_screen.dart';
 
 class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
@@ -208,44 +209,60 @@ class WelcomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
 
-                  // Login / Register CTA Button
-                  TivoButton(
-                    label: ref.watch(userProfileProvider).isCompleted
-                        ? 'Iniciar Sesión / PIN'
-                        : 'Comenzar / Crear Perfil',
-                    icon: ref.watch(userProfileProvider).isCompleted
-                        ? LucideIcons.logIn
-                        : LucideIcons.userPlus,
-                    onPressed: () {
-                      final isProfileDone = ref.read(userProfileProvider).isCompleted;
-                      if (!isProfileDone) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const OnboardingProfileScreen()),
-                        );
-                      } else {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const LockScreen()),
-                        );
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 14),
+                  // Determinar si ya existe un perfil y PIN creado
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final userProfile = ref.watch(userProfileProvider);
+                      final userPin = ref.watch(userPinProvider);
+                      final authUser = ref.watch(authStateProvider);
+                      final isAccountCreated = authUser != null && userProfile.isCompleted && userPin.isNotEmpty;
 
-                  // Crear cuenta con correo
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const AuthScreen(initialIsSignUp: true)),
+                      return Column(
+                        children: [
+                          // Botón Principal
+                          TivoButton(
+                            width: double.infinity,
+                            label: isAccountCreated
+                                ? 'Desbloquear con PIN'
+                                : 'Crear Cuenta / Comenzar',
+                            icon: isAccountCreated
+                                ? LucideIcons.lock
+                                : LucideIcons.userPlus,
+                            onPressed: () {
+                              if (!isAccountCreated) {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const AuthScreen(initialIsSignUp: true)),
+                                );
+                              } else {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const LockScreen()),
+                                );
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Enlace Secundario
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const AuthScreen(initialIsSignUp: false)),
+                              );
+                            },
+                            child: Text(
+                              isAccountCreated
+                                  ? 'Iniciar sesión con otra cuenta'
+                                  : '¿Ya tienes cuenta? Iniciar Sesión',
+                              style: const TextStyle(
+                                color: TivoColors.primaryIceBlue,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       );
                     },
-                    child: const Text(
-                      '¿No tienes cuenta? Regístrate con correo',
-                      style: TextStyle(
-                        color: TivoColors.primaryIceBlue,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                   ),
                   const SizedBox(height: 14),
                   const Text(

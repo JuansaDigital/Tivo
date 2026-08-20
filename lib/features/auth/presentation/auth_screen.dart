@@ -5,6 +5,7 @@ import '../../../core/constants/tivo_colors.dart';
 import '../../../core/constants/tivo_spacing.dart';
 import '../../../core/models/user_profile_model.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/security_provider.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/tivo_button.dart';
 import '../../main_layout/main_navigation_shell.dart';
@@ -27,6 +28,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _pinController = TextEditingController();
+  final TextEditingController _confirmPinController = TextEditingController();
 
   String _selectedAvatarId = 'wallet';
   int _selectedColorIndex = 0;
@@ -42,6 +45,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _pinController.dispose();
+    _confirmPinController.dispose();
     super.dispose();
   }
 
@@ -82,6 +87,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           avatarIconId: _selectedAvatarId,
           avatarColorIndex: _selectedColorIndex,
         );
+        if (_pinController.text.trim().isNotEmpty) {
+          ref.read(userPinProvider.notifier).updatePin(_pinController.text.trim());
+        }
       } else {
         await ref.read(authStateProvider.notifier).signInWithEmail(
           email: _emailController.text.trim(),
@@ -97,9 +105,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final cleanMsg = e.toString().replaceAll('Exception: ', '').replaceAll('FirebaseAuthException: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error de autenticación: $e'),
+            content: Text(cleanMsg),
             backgroundColor: TivoColors.statusExpenseRose,
           ),
         );
@@ -442,7 +451,79 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 16),
+
+                    if (_isSignUp) ...[
+                      const Text('PIN DE SEGURIDAD (4 DÍGITOS)', style: _labelStyle),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _pinController,
+                        obscureText: true,
+                        keyboardType: TextInputType.number,
+                        maxLength: 4,
+                        style: const TextStyle(color: TivoColors.textPrimary, fontSize: 14, letterSpacing: 4),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) return 'Ingresa tu PIN de 4 dígitos';
+                          if (val.trim().length != 4 || int.tryParse(val.trim()) == null) {
+                            return 'El PIN debe ser de exactamente 4 números';
+                          }
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          counterText: '',
+                          hintText: '••••',
+                          hintStyle: const TextStyle(color: TivoColors.textTertiary, letterSpacing: 4),
+                          prefixIcon: const Icon(LucideIcons.keyRound, color: TivoColors.textTertiary, size: 16),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.05),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                            borderSide: const BorderSide(color: TivoColors.primaryIceBlue, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      const Text('CONFIRMAR PIN (4 DÍGITOS)', style: _labelStyle),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _confirmPinController,
+                        obscureText: true,
+                        keyboardType: TextInputType.number,
+                        maxLength: 4,
+                        style: const TextStyle(color: TivoColors.textPrimary, fontSize: 14, letterSpacing: 4),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) return 'Confirma tu PIN';
+                          if (val.trim() != _pinController.text.trim()) {
+                            return 'Los PINs no coinciden';
+                          }
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          counterText: '',
+                          hintText: '••••',
+                          hintStyle: const TextStyle(color: TivoColors.textTertiary, letterSpacing: 4),
+                          prefixIcon: const Icon(LucideIcons.shieldCheck, color: TivoColors.textTertiary, size: 16),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.05),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(TivoSpacing.radiusMd),
+                            borderSide: const BorderSide(color: TivoColors.primaryIceBlue, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    const SizedBox(height: 12),
 
                     // Botón Principal
                     TivoButton(
@@ -456,6 +537,35 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       onPressed: _isLoading ? () {} : _handleSubmit,
                     ),
                     const SizedBox(height: 16),
+
+                    // Aviso legal de Política de Privacidad
+                    GestureDetector(
+                      onTap: () => _showPrivacyPolicyModal(context),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                          child: RichText(
+                            textAlign: TextAlign.center,
+                            text: const TextSpan(
+                              style: TextStyle(color: TivoColors.textTertiary, fontSize: 11),
+                              children: [
+                                TextSpan(text: 'Al continuar declaras que aceptas la '),
+                                TextSpan(
+                                  text: 'Política de Privacidad y Términos',
+                                  style: TextStyle(
+                                    color: TivoColors.primaryIceBlue,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                                TextSpan(text: ' de TIVO.'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -463,6 +573,52 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showPrivacyPolicyModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF0D152D),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(TivoSpacing.radiusLg),
+            side: BorderSide(color: Colors.white.withOpacity(0.1)),
+          ),
+          title: const Row(
+            children: [
+              Icon(LucideIcons.shieldCheck, color: TivoColors.primaryIceBlue, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Política de Privacidad',
+                style: TextStyle(color: TivoColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          content: const SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Cumplimiento de Políticas de Privacidad (App Store & Google Play):\n\n'
+                  '1. Privacidad de Datos: TIVO no rastrea ni vende tus datos financieros ni personales a anunciantes o terceros.\n\n'
+                  '2. Protección & Cifrado: Tus credenciales y código PIN se almacenan mediante cifrado seguro en tu dispositivo.\n\n'
+                  '3. Derecho de Eliminación: Puedes eliminar permanentemente tu cuenta y todos tus datos guardados en cualquier momento desde la sección de Configuraciones.',
+                  style: TextStyle(color: TivoColors.textSecondary, fontSize: 13, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Entendido', style: TextStyle(color: TivoColors.primaryIceBlue, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -88,6 +88,7 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
+      container.read(accountListProvider.notifier).loadDemoData();
       final initialAccounts = container.read(accountListProvider);
       expect(initialAccounts.isNotEmpty, isTrue);
 
@@ -128,6 +129,8 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
+      container.read(accountListProvider.notifier).loadDemoData();
+      container.read(reminderListProvider.notifier).loadDemoData();
       final accounts = container.read(accountListProvider);
       final bancolombia = accounts.firstWhere((a) => a.name == 'Bancolombia Principal');
       final initialBalance = bancolombia.balance;

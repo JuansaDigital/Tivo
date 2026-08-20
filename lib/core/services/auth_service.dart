@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -87,17 +88,34 @@ class AuthService {
     final cleanEmail = email.trim().toLowerCase();
     String uid = const Uuid().v4();
 
-    try {
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: cleanEmail,
-        password: password,
-      );
-      if (credential.user != null) {
-        uid = credential.user!.uid;
-        await credential.user!.updateDisplayName(name.trim());
+    if (Firebase.apps.isNotEmpty) {
+      try {
+        final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: cleanEmail,
+          password: password,
+        );
+        if (credential.user != null) {
+          uid = credential.user!.uid;
+          await credential.user!.updateDisplayName(name.trim());
+          try {
+            await credential.user!.sendEmailVerification();
+          } catch (_) {}
+        } else {
+          throw Exception('No se pudo completar el registro en Firebase.');
+        }
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'email-already-in-use') {
+          throw Exception('El correo electrónico ya está registrado. Inicia sesión.');
+        } else if (e.code == 'weak-password') {
+          throw Exception('La contraseña es muy débil. Debe tener al menos 6 caracteres.');
+        } else if (e.code == 'invalid-email') {
+          throw Exception('El formato del correo electrónico es inválido.');
+        } else {
+          throw Exception(e.message ?? 'Error al registrar la cuenta.');
+        }
+      } catch (e) {
+        rethrow;
       }
-    } catch (_) {
-      // Fallback local
     }
 
     final user = AuthUserModel(
@@ -136,19 +154,33 @@ class AuthService {
         ? existingProfile!.name
         : cleanEmail.split('@').first;
 
-    try {
-      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: cleanEmail,
-        password: password,
-      );
-      if (credential.user != null) {
-        uid = credential.user!.uid;
-        if (credential.user!.displayName != null && credential.user!.displayName!.isNotEmpty) {
-          displayName = credential.user!.displayName!;
+    if (Firebase.apps.isNotEmpty) {
+      try {
+        final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: cleanEmail,
+          password: password,
+        );
+        if (credential.user != null) {
+          uid = credential.user!.uid;
+          if (credential.user!.displayName != null && credential.user!.displayName!.isNotEmpty) {
+            displayName = credential.user!.displayName!;
+          }
+        } else {
+          throw Exception('No se pudo autenticar la cuenta.');
         }
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'user-not-found') {
+          throw Exception('No existe una cuenta registrada con este correo.');
+        } else if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+          throw Exception('La contraseña ingresada es incorrecta.');
+        } else if (e.code == 'invalid-email') {
+          throw Exception('El formato del correo es inválido.');
+        } else {
+          throw Exception(e.message ?? 'Error de autenticación.');
+        }
+      } catch (e) {
+        rethrow;
       }
-    } catch (_) {
-      // Fallback local
     }
 
     final user = AuthUserModel(
@@ -189,11 +221,15 @@ class AuthService {
     String? photo = googlePhotoUrl;
     String uid = 'google_${const Uuid().v4().substring(0, 8)}';
 
-    try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      
-      if (googleUser != null) {
+    if (googleEmail == null && Firebase.apps.isNotEmpty) {
+      try {
+        final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+        
+        if (googleUser == null) {
+          throw Exception('Inicio de sesión con Google cancelado.');
+        }
+
         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
         final AuthCredential credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
@@ -208,9 +244,9 @@ class AuthService {
           photo = user.photoURL ?? photo;
           uid = user.uid;
         }
+      } catch (e) {
+        rethrow;
       }
-    } catch (_) {
-      // Fallback local en desarrollo/offline
     }
 
     final user = AuthUserModel(

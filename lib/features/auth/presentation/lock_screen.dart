@@ -90,6 +90,18 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     final correctPin = ref.read(userPinProvider);
     final strings = ref.read(stringsProvider);
 
+    if (correctPin.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No has configurado un PIN de seguridad. Por favor crea tu cuenta primero.'),
+          backgroundColor: TivoColors.statusWarningAmber,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      setState(() => _pin = '');
+      return;
+    }
+
     if (_pin.length < 4) {
       setState(() => _pin += value);
       if (_pin.length == 4) {
@@ -125,7 +137,6 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = ref.watch(stringsProvider);
-    final userPin = ref.watch(userPinProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF070E22),
@@ -170,7 +181,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              '${strings['lock_subtitle'] ?? 'PIN predeterminado:'} $userPin',
+              strings['lock_subtitle'] ?? 'Ingresa tu PIN de 4 dígitos para ingresar',
               style: const TextStyle(
                 color: TivoColors.textTertiary,
                 fontSize: 13,

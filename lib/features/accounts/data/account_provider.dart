@@ -11,10 +11,7 @@ class AccountNotifier extends StateNotifier<List<AccountModel>> {
   AccountNotifier() : super(_getInitial());
 
   static List<AccountModel> _getInitial() {
-    final stored = StorageService.loadAccounts();
-    if (stored.isNotEmpty) return stored;
-    StorageService.saveAccounts(initialAccounts);
-    return initialAccounts;
+    return StorageService.loadAccounts();
   }
 
   static List<AccountModel> get initialAccounts => [

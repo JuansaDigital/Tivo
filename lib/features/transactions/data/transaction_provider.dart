@@ -16,10 +16,7 @@ class TransactionNotifier extends StateNotifier<List<TransactionModel>> {
   TransactionNotifier(this._ref) : super(_getInitial());
 
   static List<TransactionModel> _getInitial() {
-    final stored = StorageService.loadTransactions();
-    if (stored.isNotEmpty) return stored;
-    StorageService.saveTransactions(initialTransactions);
-    return initialTransactions;
+    return StorageService.loadTransactions();
   }
 
   static List<TransactionModel> get initialTransactions => [

@@ -89,7 +89,9 @@ const Map<AppLanguage, Map<String, String>> translations = {
     // Pantalla de Bloqueo / Auth
     'welcome_login': 'Iniciar Sesión / Login',
     'lock_title': 'Ingresa tu PIN de Seguridad',
-    'lock_subtitle': 'PIN predeterminado: 1234',
+    'lock_subtitle': 'Ingresa tu PIN de 4 dígitos para ingresar',
+    'pin_setup_label': 'PIN de Seguridad (4 dígitos)',
+    'pin_confirm_label': 'Confirmar PIN (4 dígitos)',
     'lock_pin_wrong': 'PIN incorrecto.',
     'lock_biometric_reason': 'Autentícate para acceder a tu panel de TIVO',
     'lock_biometric_disabled': 'El acceso biométrico está desactivado en Configuraciones.',
@@ -165,7 +167,9 @@ const Map<AppLanguage, Map<String, String>> translations = {
     // Lock Screen / Auth
     'welcome_login': 'Log In / Sign In',
     'lock_title': 'Enter Your Security PIN',
-    'lock_subtitle': 'Default PIN: 1234',
+    'lock_subtitle': 'Enter your 4-digit security PIN to enter',
+    'pin_setup_label': 'Security PIN (4 digits)',
+    'pin_confirm_label': 'Confirm PIN (4 digits)',
     'lock_pin_wrong': 'Incorrect PIN.',
     'lock_biometric_reason': 'Authenticate to access your TIVO dashboard',
     'lock_biometric_disabled': 'Biometric access is disabled in Settings.',

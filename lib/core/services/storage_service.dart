@@ -147,7 +147,12 @@ class StorageService {
   }
 
   static String loadUserPin() {
-    return _prefs?.getString(_keyUserPin) ?? '1234';
+    final pin = _prefs?.getString(_keyUserPin) ?? '';
+    if (pin == '1234') {
+      _prefs?.remove(_keyUserPin);
+      return '';
+    }
+    return pin;
   }
 
   static Future<void> saveUserPin(String pin) async {
@@ -176,7 +181,12 @@ class StorageService {
     if (raw == null || raw.isEmpty) return null;
     try {
       final Map<String, dynamic> map = jsonDecode(raw);
-      return UserProfileModel.fromMap(map);
+      final profile = UserProfileModel.fromMap(map);
+      final authUserRaw = _prefs?.getString('tivo_auth_user');
+      if (authUserRaw == null || authUserRaw.isEmpty) {
+        return profile.copyWith(isCompleted: false);
+      }
+      return profile;
     } catch (_) {
       return null;
     }
@@ -194,6 +204,8 @@ class StorageService {
     await _prefs?.remove(_keyReminders);
     await _prefs?.remove(_keyBudgets);
     await _prefs?.remove(_keyUserProfile);
+    await _prefs?.remove(_keyUserPin);
+    await _prefs?.remove('tivo_auth_user');
     await markInitialized();
   }
 }

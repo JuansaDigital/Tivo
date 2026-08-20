@@ -20,16 +20,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('TIVO'), findsOneWidget);
-    expect(find.text('Comenzar / Crear Perfil'), findsOneWidget);
+    expect(find.text('Crear Cuenta / Comenzar'), findsOneWidget);
     expect(find.text('Control Total y Sincronizado'), findsOneWidget);
 
-    // Tap to open onboarding profile screen
-    await tester.ensureVisible(find.text('Comenzar / Crear Perfil'));
+    // Tap to open auth screen in sign up mode
+    await tester.ensureVisible(find.text('Crear Cuenta / Comenzar'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Comenzar / Crear Perfil'));
+    await tester.tap(find.text('Crear Cuenta / Comenzar'));
     await tester.pumpAndSettle();
 
-    expect(find.text('¡Bienvenido a TIVO!'), findsOneWidget);
+    expect(find.text('Crear Cuenta en TIVO'), findsOneWidget);
     expect(find.text('ELIGE TU ÍCONO DE FINANZAS'), findsOneWidget);
   });
 }
